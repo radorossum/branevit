@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "dat.gui": "^0.7.9",
+    "paper": "^0.12.15"
+  }
+}
