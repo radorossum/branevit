@@ -8,55 +8,12 @@
    <link rel="stylesheet" type="text/css" href="../css/style.css">
     <link rel="stylesheet" type="text/css" href="../css/dgstyle2.css">
     <script src="../lib/dat.gui.min.js"></script>
+    <script src="buildgui.js"></script>
 </head>
 
 <body>
-    <script>
-        const state = {
-            points: 5,
-            animate: true,
-            options: ['a', 'b', 'c'],
-        };
 
-        const buildGui = () => {
-
-            const gui = new dat.GUI();
-
-            //create gui buttons
-            gui.add(state, 'points', 0, 4).step(.1).onChange(() => {
-                console.log(state.points);
-            });
-            gui.add(state, 'animate').onChange(() => {
-                console.log(state.animate);
-            });
-            gui.add(state, 'options', ['a', 'b', 'c']).onChange(() => {
-                console.log(state.options);
-            });
-            gui.close();
-            //add document keybindings to toggle gui with alt+g
-            document.addEventListener('keydown', (e) => {
-                if (e.keyCode == 71 && e.altKey) {
-
-                    gui.domElement.style.display === 'none' ? gui.domElement.style.display = 'block' : gui.domElement.style.display = 'none';
-                }
-                // close the gui with alt+shift+uparrow
-                if (e.keyCode == 38 && e.altKey && e.shiftKey) {
-                    gui.close()
-                }
-                // open the gui with alt+shift+downarrow
-                if (e.keyCode == 40 && e.altKey && e.shiftKey) {
-                    gui.open()
-                }
-
-            });
-        }
-
-        //when the window is loaded, call the buildGui function
-        window.onload = buildGui;
-
-    </script>
-
-    <div id="gui"></div>
+ <div id="gui"></div>
 
 </body>
 

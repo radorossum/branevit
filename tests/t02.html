@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>test editor app</title>
+    <script src="../lib/paper-full.min.js"></script>
+    <script src="../lib/dat.gui.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+
+        }
+
+        body,
+        html {
+            height: 100%;
+            background-color: #222;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas"></canvas>
+    <script type="text/javascript">
+        window.onload = _ => {
+            paper.install(window);
+            paper.setup('canvas');
+            buildGUI();
+            drawBackgroundGrid();
+        }
+
+        buildGUI = _ => {
+            // Build the GUI
+            //create a params object with activeTool, clearCanvas
+            var params = {
+                activeTool: 'edit',
+                activeLayer: 'foreground',
+                clearCanvas: _ => { },
+                addLayer: _ => { },
+
+            };
+
+            var layers = [];
+
+            layers.push(new paper.Layer({
+                name: 'foreground',
+                visible: true,
+                opacity: 1,
+                locked: false,
+                color: '#ff0000'
+            }));
+
+            layers.push(new paper.Layer({
+                name: 'background',
+                visible: true,
+                opacity: 1,
+                locked: false,
+                color: '#ffff00'
+            }));
+
+            ////create a dat.gui
+            var gui = new dat.GUI();
+
+            gui.add(params, 'activeTool',
+                ['edit', 'select', 'erase']).name('tool');
+
+            gui.add(params, 'clearCanvas').name('clear canvas').onChange(_ => {
+                paper.project.activeLayer.clear();
+            });
+
+            //add a button to the gui to add a new layer
+            gui.add(params, 'addLayer').name('add layer').onChange(_ => {
+                var newLayer = new paper.Layer({
+                    name: 'layer' + (layers.length),
+                    visible: true,
+                    opacity: 1,
+                    locked: false,
+                    color: '#ff0000'
+                });
+
+                layers.push(newLayer);
+                newLayer.activate();
+
+                // console.log(layers.map(l => l.name));
+                layerlist.remove();
+                layerlist = gui.add(params, 'activeLayer',
+                    layers.map(l => l.name)).name('layer')
+                    .onChange(updateActiveLayer).listen();
+            });
+
+            //update the dropdown menu choices with the names of the layers
+            const updateLayerList = name => {
+                paper.project.activeLayer = layers.find(l => l.name == name);
+                let l = layers.find(l => l.name === value);
+                console.log(value + " " + l.name + " " + paper.project.activeLayer.name);
+
+            };
+
+            const updateActiveLayer = name => {
+                let newactivelayer = layers.find(l => l.name === name);
+                newactivelayer.activate();
+                console.log(newactivelayer.name + " " + paper.project.activeLayer.name);
+            }
+
+            var layerlist = gui.add(params, 'activeLayer',
+                paper.project.layers.map(l => l.name)).
+                name('layer').onChange(updateActiveLayer).listen();
+
+
+        };
+
+        ////////////////////
+        //// draw background grid
+        const drawBackgroundGrid = _ => {
+            //draw a square n x n grid with thin black lines on the background layer
+            const n = 10;
+            const grid = new paper.Path.Rectangle({
+                rectangle: [0, 0, paper.view.size.width, paper.view.size.height],
+                fillColor: '#f00',
+                opacity: 0.5
+            }).sendToBack();
+            for (let i = 0; i < n; i++) {
+                let x = i * paper.view.size.width / n;
+                let y = i * paper.view.size.height / n;
+                let line = new paper.Path.Line({
+                    from: [x, 0],
+                    to: [x, paper.view.size.height],
+                    strokeColor: '#222',
+                    strokeWidth: 3
+                });
+                line.sendToBack();
+                let line2 = new paper.Path.Line({
+                    from: [0, y],
+                    to: [paper.view.size.width, y],
+                    strokeColor: '#222',
+                    strokeWidth: 3
+                });
+                line2.sendToBack();
+            }
+
+            //     var cols = 10,
+            //     viewport = project.view.bounds,
+            //     colWidth = viewport.width / cols,
+            //     colHeight = viewport.height
+
+            // for (var i = 0; i < cols; i++) {
+            //     new Path.Rectangle({
+            //         point: [i * 2 * colWidth, 0],
+            //         size: [colWidth, colHeight],
+            //         fillColor: '#eee'
+            //     })
+        }
+
+
+
+
+    </script>
+</body>
+
+</html>
