@@ -10,7 +10,6 @@
         * {
             margin: 0;
             padding: 0;
-
         }
 
         body,
@@ -31,42 +30,28 @@
 
 <body>
     <canvas id="canvas"></canvas>
+
     <script type="text/javascript">
         window.onload = _ => {
             paper.install(window);
             paper.setup('canvas');
-            buildGUI();
-            drawBackgroundGrid();
+
+            setupPaper();
+            setupGUI();
         }
 
-        buildGUI = _ => {
+        var layers = [];
+
+        setupGUI = _ => {
             // Build the GUI
             //create a params object with activeTool, clearCanvas
             var params = {
                 activeTool: 'edit',
-                activeLayer: 'foreground',
+                activeLayer: 'layer0',
                 clearCanvas: _ => { },
                 addLayer: _ => { },
 
             };
-
-            var layers = [];
-
-            layers.push(new paper.Layer({
-                name: 'foreground',
-                visible: true,
-                opacity: 1,
-                locked: false,
-                color: '#ff0000'
-            }));
-
-            layers.push(new paper.Layer({
-                name: 'background',
-                visible: true,
-                opacity: 1,
-                locked: false,
-                color: '#ffff00'
-            }));
 
             ////create a dat.gui
             var gui = new dat.GUI();
@@ -112,56 +97,94 @@
                 console.log(newactivelayer.name + " " + paper.project.activeLayer.name);
             }
 
-            var layerlist = gui.add(params, 'activeLayer',
+            const layerlist = gui.add(params, 'activeLayer',
                 paper.project.layers.map(l => l.name)).
                 name('layer').onChange(updateActiveLayer).listen();
 
+            gui.domElement.style.display = 'none';
+            //setup keybinding for alt+v or esc to toggle dat.gui visibility on/off
+
+            document.addEventListener('keydown', e => {
+                if ((e.keyCode == 27) || (e.keyCode == 86 && e.altKey)) {
+                    gui.domElement.style.display = gui.domElement.style.display == 'none' ? 'block' : 'none';
+                }
+            });
 
         };
 
+        //on resize window rebuild the paper project
+        window.onresize = _ => {
+            paper.view.viewSize = new paper.Size(window.innerWidth, window.innerHeight);
+            setupPaper();
+
+        };
+
+        const setupPaper = _ => {
+            //clear the paper project
+            paper.project.clear();
+            layers = [];
+            layers.push(new paper.Layer({
+                name: 'layer0',
+                visible: true,
+                opacity: 1,
+                locked: false,
+                color: 'none'
+            }));
+
+            layers.push(new paper.Layer({
+                name: 'layer1',
+                visible: true,
+                opacity: 1,
+                locked: false,
+                color: '#ffff00'
+            }));
+            layers[0].activate();
+            drawBackgroundGrid(25,'blue');
+            layers[1].activate();
+            drawBackgroundGrid(100,'yellow');
+
+        }
+
         ////////////////////
         //// draw background grid
-        const drawBackgroundGrid = _ => {
+        const drawBackgroundGrid = (n = 20, color1 = 'red', color2 = 'lightblue') => {
             //draw a square n x n grid with thin black lines on the background layer
-            const n = 10;
+            //const n = 20;
+            console.log(n);
+            const viewsize = paper.view.size;
             const grid = new paper.Path.Rectangle({
-                rectangle: [0, 0, paper.view.size.width, paper.view.size.height],
-                fillColor: '#f00',
-                opacity: 0.5
-            }).sendToBack();
-            for (let i = 0; i < n; i++) {
-                let x = i * paper.view.size.width / n;
-                let y = i * paper.view.size.height / n;
+                rectangle: [n, n,
+                    paper.view.size.width - 2*n, paper.view.size.height - 2*n],
+                fillColor: color1,
+                strokeColor: 'none',
+                opacity: .5
+            })
+            let aspect = paper.view.size.width / paper.view.size.height;
+            aspect = 1;
+            let gridstep = { x: n, y: n };
+            let nsteps = Math.max(paper.view.size.width, paper.view.size.height) /
+                Math.min(gridstep.x, gridstep.y);
+
+            for (let i = 0; i < nsteps; i++) {
+                let x = i * gridstep.x;
+                let y = aspect * i * gridstep.y;
                 let line = new paper.Path.Line({
                     from: [x, 0],
                     to: [x, paper.view.size.height],
-                    strokeColor: '#222',
-                    strokeWidth: 3
+                    strokeColor: color2,
+                    strokeWidth: 1
                 });
-                line.sendToBack();
+                // line.sendToFront();
                 let line2 = new paper.Path.Line({
                     from: [0, y],
                     to: [paper.view.size.width, y],
-                    strokeColor: '#222',
-                    strokeWidth: 3
+                    strokeColor: color2,
+                    strokeWidth: 1
                 });
-                line2.sendToBack();
+                //line2.sendToBack();
             }
 
-            //     var cols = 10,
-            //     viewport = project.view.bounds,
-            //     colWidth = viewport.width / cols,
-            //     colHeight = viewport.height
-
-            // for (var i = 0; i < cols; i++) {
-            //     new Path.Rectangle({
-            //         point: [i * 2 * colWidth, 0],
-            //         size: [colWidth, colHeight],
-            //         fillColor: '#eee'
-            //     })
         }
-
-
 
 
     </script>
