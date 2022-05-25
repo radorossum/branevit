@@ -36,21 +36,32 @@
             paper.install(window);
             paper.setup('canvas');
             window.onresize();
+            setupPaper();
             setupGUI();
+            setupDrawingTools();
+            sketch1();
         }
 
         var layers = [];
         var params = {
-            activeTool: 'draw',
-            previousActiveTool: 'draw',
+            activeTool: 'select',
+            previousActiveTool: 'select',
+            defaultTool:'select',
 
-            activeLayer: 'layer0',
-            fgcolor1: '#ff0000',
-            fgcolor2: '#00ff00',
-            bgcolor1: '#0000ff',
-            bgcolor2: '#ffff00',
+
+            fgcolor1: '#fff',
+            bgcolor1: '#aaa',
+            opacity1: 0.5,
+            fgcolor2: '#ddd',
+            bgcolor2: '#baa',
+            opacity2: .5,
             clearCanvas: _ => { },
             addLayer: _ => { },
+            activeLayer: 'layer3',
+            visible0: true,
+            visible1: true,
+            visible2: true,
+            visible3: true,
 
         };
 
@@ -59,9 +70,6 @@
             if (gui) {
                 gui.destroy();
             }
-            // Build the GUI
-            //create a params object with activeTool, clearCanvas
-
 
             ////create a dat.gui
             var gui = new dat.GUI();
@@ -75,21 +83,20 @@
             var toolFolder = gui.addFolder('Tool');
             var layerFolder = gui.addFolder('Layer');
 
-
-
-
             toolFolder.add(params, 'activeTool',
-                ['draw', 'edit', 'select', 'erase']).name('mode').onChange(value => {
-                    params.previousActiveTool = value;
+                ['draw', 'edit', 'select', 'erase']).name('mode')
+                .onChange(value => {
                     console.log(params.activeTool + ' ' + params.previousActiveTool);
                 }).listen();
             //add color picker for foreground color
             toolFolder.addColor(params, 'fgcolor1').name('fgcolor1');
-            toolFolder.addColor(params, 'fgcolor2').name('fgcolor2');
             toolFolder.addColor(params, 'bgcolor1').name('bgcolor1');
+            toolFolder.add(params, 'opacity1', 0., 1.).name('opacity1');
+            toolFolder.addColor(params, 'fgcolor2').name('fgcolor2');
             toolFolder.addColor(params, 'bgcolor2').name('bgcolor2');
+            toolFolder.add(params, 'opacity2', 0., 1.).name('opacity2');
 
-            actionsFolder.add(params, 'clearCanvas').name('clear canvas').onChange(_ => {
+            layerFolder.add(params, 'clearCanvas').name('clear').onChange(_ => {
                 paper.project.activeLayer.clear();
             });
 
@@ -131,10 +138,18 @@
                 paper.project.layers.map(l => l.name)).
                 name('layer').onChange(updateActiveLayer).listen();
 
+            //add checkbox for layer1 visibility
+            layerFolder.add(params, 'visible0').name('layer0').onChange(v =>layers[0].visible = v);
+            layerFolder.add(params, 'visible1').name('layer1').onChange(v =>layers[1].visible = v);
+            layerFolder.add(params, 'visible2').name('layer2').onChange(v =>layers[2].visible = v);
+            layerFolder.add(params, 'visible3').name('layer3').onChange(v =>layers[3].visible = v);
+
+            layerFolder.open();
+
             // gui.domElement.style.display = 'none';
-            //setup keybinding for alt+v or esc to toggle dat.gui visibility on/off
+            //setup keybinding for alt+v or shif+esc to toggle dat.gui visibility on/off
             document.addEventListener('keydown', e => {
-                if ((e.keyCode == 27) || (e.keyCode == 86 && e.altKey)) {
+                if (((e.keyCode == 27 && e.shiftKey)) || (e.keyCode == 86 && e.altKey)) {
                     gui.domElement.style.display = gui.domElement.style.display == 'none' ? 'block' : 'none';
                 }
             });
@@ -145,50 +160,60 @@
         //on resize window rebuild the paper project
         window.onresize = _ => {
             paper.view.viewSize = new paper.Size(window.innerWidth, window.innerHeight);
-            setupPaper();
-
-            setupDrawingTools();
-            sketch1();
         };
 
         const setupPaper = _ => {
             //clear the paper project
             paper.project.clear();
-            layers = [];
-            layers.push(new paper.Layer({
+
+            layers = paper.project.layers;
+
+            new paper.Layer({
                 name: 'layer0',
                 visible: true,
                 opacity: 1,
-                locked: false,
+                locked: true,
                 color: 'none'
-            }));
+            });
 
-            layers.push(new paper.Layer({
+           new paper.Layer({
                 name: 'layer1',
                 visible: true,
                 opacity: 1,
                 locked: false,
                 color: '#ffff00'
-            }));
+            });
+            new paper.Layer({
+                name: 'layer2',
+                visible: true,
+                opacity: 1,
+                locked: false,
+                color: 'none'
+            });
 
-
-
+           new paper.Layer({
+                name: 'layer3',
+                visible: true,
+                opacity: 1,
+                locked: false,
+                color: '#ffff00'
+            });
         }
 
         ////////////////////////////////////////////////////////////////////////////////
         //// draw background grid
-        const drawBackgroundGrid = (n = 20, color1 = 'red', color2 = 'lightblue') => {
+        const drawBackgroundGrid = (n = 20, fgcolor = 'black', bgcolor = 'grey', fgopacity = 1, bgopacity = 1) => {
             //draw a square n x n grid with thin black lines on the background layer
             //const n = 20;
             console.log(n);
             const viewsize = paper.view.size;
             const grid = new paper.Path.Rectangle({
-                rectangle: [n, n,
-                    paper.view.size.width - 2 * n, paper.view.size.height - 2 * n],
-                fillColor: color1,
+                rectangle: [0, 0,
+                    paper.view.size.width, paper.view.size.height],
+                fillColor: bgcolor,
                 strokeColor: 'none',
-                opacity: .5
-            })
+                opacity: bgopacity
+            }).sendToBack();
             let aspect = paper.view.size.width / paper.view.size.height;
             aspect = 1;
             let gridstep = { x: n, y: n };
@@ -201,69 +226,56 @@
                 let line = new paper.Path.Line({
                     from: [x, 0],
                     to: [x, paper.view.size.height],
-                    strokeColor: color2,
+                    strokeColor: fgcolor,
+                    opacity: fgopacity,
                     strokeWidth: 1
                 });
                 // line.sendToFront();
                 let line2 = new paper.Path.Line({
                     from: [0, y],
                     to: [paper.view.size.width, y],
-                    strokeColor: color2,
+                    strokeColor: fgcolor,
+                    opacity: fgopacity,
                     strokeWidth: 1
                 });
                 //line2.sendToBack();
             }
 
         }
-        ////////////////////////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////////////////////
         //// setup drawing tools
         const setupDrawingTools = _ => {
             //create a new tool for drawing
             var drawTool = new paper.Tool();
             drawTool.minDistance = 10;
             var drawToolPath;
-            //keybdinging for q key to toggle between draw and edit mode
 
-
-            // document.addEventListener('keydown', e => {
-            //     if (e.key == 'q') {
-
-            //         params.activeTool = 'select';
-            //         console.log('qdown:' + params.activeTool + ' ' + params.previousActiveTool);
-
-            //     } else if (e.key == 'd') {
-            //         params.activeTool = 'draw';
-            //     }
-
-            // });
-
-            // //add document keybinding for q key release to restore previous active tool
-
-            // document.addEventListener('keyup', e => {
-            //     if (e.key == 'q') {
-            //         console.log('qup:' + params.activeTool + ' ' + params.previousActiveTool);
-
-            //         params.activeTool = params.previousActiveTool;
-
-
-            //     }
-            // });
-            
-
-            drawTool.onKeyDown = e => {
-                params.previousActiveTool=params.activeTool;
+            //document keybind'q' to change params.activeTool to select
+            document.addEventListener('keydown', e => {
+                params.previousActiveTool = params.activeTool;
                 if (e.key == 'q') {
                     params.activeTool = 'select';
-                } else if (e.key == 'd') {
-                    params.activeTool = 'draw';
-                } else if (e.key == 'x') {
-                    params.activeTool = 'erase';
                 }
-            }
+                if (e.key == 'd') {
+                    params.activeTool = 'draw';
+                }
+                if (e.key == 'x') {
+                    params.activeTool = 'erase';
+                } 
+                if (e.key == 'e') {
+                    params.activeTool = 'edit';
+                } 
+                console.log(params.activeTool+" "+params.previousActiveTool);
+            });
 
-            drawTool.onKeyUp = e => {
-                params.activeTool=params.previousActiveTool;
-            }
+            document.addEventListener('keyup', e => {
+                if (['q', 'd', 'e','x'].includes(e.key)) {
+                    params.activeTool = params.defaultTool;
+                    
+                    console.log(params.activeTool+" "+params.previousActiveTool);
+                }
+            });
+
 
 
 
@@ -274,13 +286,16 @@
                     drawToolPath = new paper.Path();
                     drawToolPath.strokeColor = params.fgcolor1;
                     drawToolPath.fillColor = params.bgcolor1;
+                    //set drawtoolpath opacity to params.opacity1
+                    drawToolPath.opacity = params.opacity1;
+                    
                     drawToolPath.strokeWidth = 1;
                     drawToolPath.fullySelected = true;
                     drawToolPath.closed = false;
                 } else if (params.activeTool == 'select') {
 
                     if (drawToolPath) {
-                        if(e.item) {
+                        if (e.item) {
                             e.item.selected = !e.item.selected;
                         }
                         // drawToolPath.selected = !drawToolPath.selected;
@@ -299,35 +314,42 @@
             };
 
             drawTool.onMouseMove = e => {
-              //  if (params.activeTool == 'draw') {
-                    // project.activeLayer.selected = false;
-                    // if (e.item) {
-                    //     e.item.selected = true;
-                    //     selectedPath = event.item;
-                    // } else {
-                    //     selectedPath = null;
-                    // }
+                //  if (params.activeTool == 'draw') {
+                // project.activeLayer.selected = false;
+                // if (e.item) {
+                //     e.item.selected = true;
+                //     selectedPath = event.item;
+                // } else {
+                //     selectedPath = null;
+                // }
 
                 //}
             }
 
             //loop over all selected items in the active layer and remove them
             drawTool.onKeyDown = e => {
-                if (e.key == 'backspace') {
+                if (e.key == 'z') {
                     paper.project.selectedItems.array.forEach(e => {
                         e.remove();
-                        
+
                     });
                 }
             }
 
-            //remove all selected items in the active layer
-            drawTool.onKeyDown = e => {
-                if (e.key == 'delete') {
-                    //loop over all selected items in the active layer and remove them
 
+
+            //remove all selected items in the active layer
+            //document keybind 'delete' to remove selected items
+            document.addEventListener('keydown', e => {
+                console.log(e.key);
+                if (e.key == 'Delete' || e.key == 'Backspace') {
+                    paper.project.selectedItems.forEach(e => {
+                        e.remove();
+                    });
                 }
             }
+            );
+
             drawTool.onMouseUp = e => {
                 if (params.activeTool == 'draw') {
 
@@ -338,7 +360,7 @@
 
                     drawToolPath.smooth({ type: 'continuous', factor: .9 });
                     drawToolPath.simplify();
-                    //  drawToolPath.selected = true;
+                      drawToolPath.selected = false;
                     // drawToolPath = null;
                 } else if (params.activeTool == 'erase') {
                     console.log('erase');
@@ -351,9 +373,12 @@
         //// sketch 1
         const sketch1 = _ => {
             layers[0].activate();
-            drawBackgroundGrid(25, 'blue');
-            layers[1].activate();
-            drawBackgroundGrid(100, 'yellow');
+            drawBackgroundGrid(100, 'grey', 'black');
+            //lock layer 0
+            layers[0].locked = true;
+            layers[3].activate();
+            //layers[1].activate();
+            //drawBackgroundGrid(100, 'yellow');
 
         }
 
