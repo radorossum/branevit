@@ -35,36 +35,66 @@
         window.onload = _ => {
             paper.install(window);
             paper.setup('canvas');
-
-            setupPaper();
+            window.onresize();
             setupGUI();
         }
 
         var layers = [];
+        var params = {
+            activeTool: 'draw',
+            previousActiveTool: 'draw',
+
+            activeLayer: 'layer0',
+            fgcolor1: '#ff0000',
+            fgcolor2: '#00ff00',
+            bgcolor1: '#0000ff',
+            bgcolor2: '#ffff00',
+            clearCanvas: _ => { },
+            addLayer: _ => { },
+
+        };
 
         setupGUI = _ => {
+            //clear gui if it exists
+            if (gui) {
+                gui.destroy();
+            }
             // Build the GUI
             //create a params object with activeTool, clearCanvas
-            var params = {
-                activeTool: 'edit',
-                activeLayer: 'layer0',
-                clearCanvas: _ => { },
-                addLayer: _ => { },
 
-            };
 
             ////create a dat.gui
             var gui = new dat.GUI();
+            //actions
+            //mode
+            //tool
+            //layer
+            //create a folder for the params 
+            var actionsFolder = gui.addFolder('Actions');
+            var modeFolder = gui.addFolder('Mode');
+            var toolFolder = gui.addFolder('Tool');
+            var layerFolder = gui.addFolder('Layer');
 
-            gui.add(params, 'activeTool',
-                ['edit', 'select', 'erase']).name('tool');
 
-            gui.add(params, 'clearCanvas').name('clear canvas').onChange(_ => {
+
+
+            toolFolder.add(params, 'activeTool',
+                ['draw', 'edit', 'select', 'erase']).name('mode').onChange(value => {
+                    params.previousActiveTool = value;
+                    console.log(params.activeTool + ' ' + params.previousActiveTool);
+                }).listen();
+            //add color picker for foreground color
+            toolFolder.addColor(params, 'fgcolor1').name('fgcolor1');
+            toolFolder.addColor(params, 'fgcolor2').name('fgcolor2');
+            toolFolder.addColor(params, 'bgcolor1').name('bgcolor1');
+            toolFolder.addColor(params, 'bgcolor2').name('bgcolor2');
+
+            actionsFolder.add(params, 'clearCanvas').name('clear canvas').onChange(_ => {
                 paper.project.activeLayer.clear();
             });
 
             //add a button to the gui to add a new layer
-            gui.add(params, 'addLayer').name('add layer').onChange(_ => {
+            layerFolder.add(params, 'addLayer').name('add layer').onChange(_ => {
                 var newLayer = new paper.Layer({
                     name: 'layer' + (layers.length),
                     visible: true,
@@ -78,7 +108,7 @@
 
                 // console.log(layers.map(l => l.name));
                 layerlist.remove();
-                layerlist = gui.add(params, 'activeLayer',
+                layerlist = layerFolder.add(params, 'activeLayer',
                     layers.map(l => l.name)).name('layer')
                     .onChange(updateActiveLayer).listen();
             });
@@ -97,18 +127,18 @@
                 console.log(newactivelayer.name + " " + paper.project.activeLayer.name);
             }
 
-            const layerlist = gui.add(params, 'activeLayer',
+            const layerlist = layerFolder.add(params, 'activeLayer',
                 paper.project.layers.map(l => l.name)).
                 name('layer').onChange(updateActiveLayer).listen();
 
-            gui.domElement.style.display = 'none';
+            // gui.domElement.style.display = 'none';
             //setup keybinding for alt+v or esc to toggle dat.gui visibility on/off
-
             document.addEventListener('keydown', e => {
                 if ((e.keyCode == 27) || (e.keyCode == 86 && e.altKey)) {
                     gui.domElement.style.display = gui.domElement.style.display == 'none' ? 'block' : 'none';
                 }
             });
+
 
         };
 
@@ -117,6 +147,8 @@
             paper.view.viewSize = new paper.Size(window.innerWidth, window.innerHeight);
             setupPaper();
 
+            setupDrawingTools();
+            sketch1();
         };
 
         const setupPaper = _ => {
@@ -138,14 +170,12 @@
                 locked: false,
                 color: '#ffff00'
             }));
-            layers[0].activate();
-            drawBackgroundGrid(25,'blue');
-            layers[1].activate();
-            drawBackgroundGrid(100,'yellow');
+
+
 
         }
 
-        ////////////////////
+        ////////////////////////////////////////////////////////////////////////////////
         //// draw background grid
         const drawBackgroundGrid = (n = 20, color1 = 'red', color2 = 'lightblue') => {
             //draw a square n x n grid with thin black lines on the background layer
@@ -154,7 +184,7 @@
             const viewsize = paper.view.size;
             const grid = new paper.Path.Rectangle({
                 rectangle: [n, n,
-                    paper.view.size.width - 2*n, paper.view.size.height - 2*n],
+                    paper.view.size.width - 2 * n, paper.view.size.height - 2 * n],
                 fillColor: color1,
                 strokeColor: 'none',
                 opacity: .5
@@ -185,7 +215,147 @@
             }
 
         }
+        ////////////////////////////////////////////////////////////////////////////////
+        //// setup drawing tools
+        const setupDrawingTools = _ => {
+            //create a new tool for drawing
+            var drawTool = new paper.Tool();
+            drawTool.minDistance = 10;
+            var drawToolPath;
+            //keybdinging for q key to toggle between draw and edit mode
 
+
+            // document.addEventListener('keydown', e => {
+            //     if (e.key == 'q') {
+
+            //         params.activeTool = 'select';
+            //         console.log('qdown:' + params.activeTool + ' ' + params.previousActiveTool);
+
+            //     } else if (e.key == 'd') {
+            //         params.activeTool = 'draw';
+            //     }
+
+            // });
+
+            // //add document keybinding for q key release to restore previous active tool
+
+            // document.addEventListener('keyup', e => {
+            //     if (e.key == 'q') {
+            //         console.log('qup:' + params.activeTool + ' ' + params.previousActiveTool);
+
+            //         params.activeTool = params.previousActiveTool;
+
+
+            //     }
+            // });
+            
+
+            drawTool.onKeyDown = e => {
+                params.previousActiveTool=params.activeTool;
+                if (e.key == 'q') {
+                    params.activeTool = 'select';
+                } else if (e.key == 'd') {
+                    params.activeTool = 'draw';
+                } else if (e.key == 'x') {
+                    params.activeTool = 'erase';
+                }
+            }
+
+            drawTool.onKeyUp = e => {
+                params.activeTool=params.previousActiveTool;
+            }
+
+
+
+            drawTool.onMouseDown = e => {
+                if (params.activeTool == 'draw') {
+                    if (drawToolPath) drawToolPath.selected = false;
+
+                    drawToolPath = new paper.Path();
+                    drawToolPath.strokeColor = params.fgcolor1;
+                    drawToolPath.fillColor = params.bgcolor1;
+                    drawToolPath.strokeWidth = 1;
+                    drawToolPath.fullySelected = true;
+                    drawToolPath.closed = false;
+                } else if (params.activeTool == 'select') {
+
+                    if (drawToolPath) {
+                        if(e.item) {
+                            e.item.selected = !e.item.selected;
+                        }
+                        // drawToolPath.selected = !drawToolPath.selected;
+                        // if(drawToolPath.selected){
+                        //     selectedPath = drawToolPath;
+                        // }
+                    }
+                }
+            };
+
+            drawTool.onMouseDrag = e => {
+                if (params.activeTool == 'draw') {
+                    drawToolPath.add(e.point);
+                }
+
+            };
+
+            drawTool.onMouseMove = e => {
+              //  if (params.activeTool == 'draw') {
+                    // project.activeLayer.selected = false;
+                    // if (e.item) {
+                    //     e.item.selected = true;
+                    //     selectedPath = event.item;
+                    // } else {
+                    //     selectedPath = null;
+                    // }
+
+                //}
+            }
+
+            //loop over all selected items in the active layer and remove them
+            drawTool.onKeyDown = e => {
+                if (e.key == 'backspace') {
+                    paper.project.selectedItems.array.forEach(e => {
+                        e.remove();
+                        
+                    });
+                }
+            }
+
+            //remove all selected items in the active layer
+            drawTool.onKeyDown = e => {
+                if (e.key == 'delete') {
+                    //loop over all selected items in the active layer and remove them
+
+                }
+            }
+            drawTool.onMouseUp = e => {
+                if (params.activeTool == 'draw') {
+
+                    drawToolPath.add(e.point);
+                    //smooth path by 90%
+                    //drawToolPath.smooth();
+                    drawToolPath.closed = true;
+
+                    drawToolPath.smooth({ type: 'continuous', factor: .9 });
+                    drawToolPath.simplify();
+                    //  drawToolPath.selected = true;
+                    // drawToolPath = null;
+                } else if (params.activeTool == 'erase') {
+                    console.log('erase');
+                    if (e.item) e.item.remove();
+                }
+
+            };
+        }
+        /////////////////////////////////
+        //// sketch 1
+        const sketch1 = _ => {
+            layers[0].activate();
+            drawBackgroundGrid(25, 'blue');
+            layers[1].activate();
+            drawBackgroundGrid(100, 'yellow');
+
+        }
 
     </script>
 </body>
