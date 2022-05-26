@@ -46,7 +46,7 @@
         var params = {
             activeTool: 'select',
             previousActiveTool: 'select',
-            defaultTool:'select',
+            defaultTool: 'select',
 
 
             fgcolor1: '#fff',
@@ -86,7 +86,7 @@
             toolFolder.add(params, 'activeTool',
                 ['draw', 'edit', 'select', 'erase']).name('mode')
                 .onChange(value => {
-                    console.log(params.activeTool + ' ' + params.previousActiveTool);
+                    // console.log(params.activeTool + ' ' + params.previousActiveTool);
                 }).listen();
             //add color picker for foreground color
             toolFolder.addColor(params, 'fgcolor1').name('fgcolor1');
@@ -124,14 +124,14 @@
             const updateLayerList = name => {
                 paper.project.activeLayer = layers.find(l => l.name == name);
                 let l = layers.find(l => l.name === value);
-                console.log(value + " " + l.name + " " + paper.project.activeLayer.name);
+                // console.log(value + " " + l.name + " " + paper.project.activeLayer.name);
 
             };
 
             const updateActiveLayer = name => {
                 let newactivelayer = layers.find(l => l.name === name);
                 newactivelayer.activate();
-                console.log(newactivelayer.name + " " + paper.project.activeLayer.name);
+                //(newactivelayer.name + " " + paper.project.activeLayer.name);
             }
 
             const layerlist = layerFolder.add(params, 'activeLayer',
@@ -139,10 +139,10 @@
                 name('layer').onChange(updateActiveLayer).listen();
 
             //add checkbox for layer1 visibility
-            layerFolder.add(params, 'visible0').name('layer0').onChange(v =>layers[0].visible = v);
-            layerFolder.add(params, 'visible1').name('layer1').onChange(v =>layers[1].visible = v);
-            layerFolder.add(params, 'visible2').name('layer2').onChange(v =>layers[2].visible = v);
-            layerFolder.add(params, 'visible3').name('layer3').onChange(v =>layers[3].visible = v);
+            layerFolder.add(params, 'visible0').name('layer0').onChange(v => layers[0].visible = v);
+            layerFolder.add(params, 'visible1').name('layer1').onChange(v => layers[1].visible = v);
+            layerFolder.add(params, 'visible2').name('layer2').onChange(v => layers[2].visible = v);
+            layerFolder.add(params, 'visible3').name('layer3').onChange(v => layers[3].visible = v);
 
             layerFolder.open();
 
@@ -176,7 +176,7 @@
                 color: 'none'
             });
 
-           new paper.Layer({
+            new paper.Layer({
                 name: 'layer1',
                 visible: true,
                 opacity: 1,
@@ -191,7 +191,7 @@
                 color: 'none'
             });
 
-           new paper.Layer({
+            new paper.Layer({
                 name: 'layer3',
                 visible: true,
                 opacity: 1,
@@ -261,18 +261,17 @@
                 }
                 if (e.key == 'x') {
                     params.activeTool = 'erase';
-                } 
+                }
                 if (e.key == 'e') {
                     params.activeTool = 'edit';
-                } 
-                console.log(params.activeTool+" "+params.previousActiveTool);
+                }
+                // console.log(params.activeTool + " " + params.previousActiveTool);
             });
 
             document.addEventListener('keyup', e => {
-                if (['q', 'd', 'e','x'].includes(e.key)) {
+                if (['q', 'd', 'e', 'x'].includes(e.key)) {
                     params.activeTool = params.defaultTool;
-                    
-                    console.log(params.activeTool+" "+params.previousActiveTool);
+                    // console.log(params.activeTool + " " + params.previousActiveTool);
                 }
             });
 
@@ -288,28 +287,46 @@
                     drawToolPath.fillColor = params.bgcolor1;
                     //set drawtoolpath opacity to params.opacity1
                     drawToolPath.opacity = params.opacity1;
-                    
+
                     drawToolPath.strokeWidth = 1;
                     drawToolPath.fullySelected = true;
                     drawToolPath.closed = false;
                 } else if (params.activeTool == 'select') {
+                    //if the user presses 'a' key, add all paths to the selection
 
-                    if (drawToolPath) {
-                        if (e.item) {
-                            e.item.selected = !e.item.selected;
-                        }
-                        // drawToolPath.selected = !drawToolPath.selected;
-                        // if(drawToolPath.selected){
-                        //     selectedPath = drawToolPath;
-                        // }
+
+                    if (e.key == 'a') {
+                        paper.project.activeLayer.selected = true;
+                        console.log('selecting all');
                     }
+
+
+                    if (e.item) {
+                        e.item.selected = !e.item.selected;
+                    }
+
                 }
             };
 
             drawTool.onMouseDrag = e => {
                 if (params.activeTool == 'draw') {
                     drawToolPath.add(e.point);
+                } else if (params.activeTool == 'select') {
+                    if (e.item) {
+                        if (e.key == 's') {
+                            //smooth e.item by the mouse delta
+
+                            e.item.smooth(
+                                { type: 'continuous', factor: .9 }
+                            );
+
+
+
+
+                        }
+                    }
                 }
+
 
             };
 
@@ -328,20 +345,19 @@
 
             //loop over all selected items in the active layer and remove them
             drawTool.onKeyDown = e => {
-                if (e.key == 'z') {
-                    paper.project.selectedItems.array.forEach(e => {
-                        e.remove();
-
-                    });
+                if (params.activeTool == 'select') {
+                    if (e.key == 'Backspace') {d
+                        paper.project.selectedItems.forEach(e => {
+                            e.remove();
+                        });
+                    }
                 }
             }
-
-
 
             //remove all selected items in the active layer
             //document keybind 'delete' to remove selected items
             document.addEventListener('keydown', e => {
-                console.log(e.key);
+
                 if (e.key == 'Delete' || e.key == 'Backspace') {
                     paper.project.selectedItems.forEach(e => {
                         e.remove();
@@ -354,13 +370,13 @@
                 if (params.activeTool == 'draw') {
 
                     drawToolPath.add(e.point);
-                    //smooth path by 90%
+
                     //drawToolPath.smooth();
                     drawToolPath.closed = true;
 
                     drawToolPath.smooth({ type: 'continuous', factor: .9 });
                     drawToolPath.simplify();
-                      drawToolPath.selected = false;
+                    drawToolPath.selected = false;
                     // drawToolPath = null;
                 } else if (params.activeTool == 'erase') {
                     console.log('erase');
