@@ -12,7 +12,7 @@ window.onload = _ => {
 var layers = [];
 var params = {
     //add gui button to clear the project
-    clearCanvas: _ => {},
+    clearCanvas: _ => { },
 
     activeTool: 'select',
     previousActiveTool: 'select',
@@ -24,8 +24,8 @@ var params = {
     fgcolor2: '#ddd',
     bgcolor2: '#baa',
     opacity2: .5,
-    clearLayer:_ => {},
-    addLayer: _ => {},
+    clearLayer: _ => { },
+    addLayer: _ => { },
     activeLayer: 'layer3',
     visible0: true,
     visible1: true,
@@ -56,7 +56,7 @@ setupGUI = _ => {
 
     // Tool //////////////////////////////////////////////////////////////////
 
-    
+
     toolFolder.add(params, 'activeTool',
         ['draw', 'edit', 'select', 'erase']).name('mode')
         .onChange(value => {
@@ -222,30 +222,69 @@ function setupDrawingTools() {
     tool.minDistance = 10;
     var toolPath;
 
-    //document keybind'q' to change params.activeTool to select
-    document.addEventListener('keydown', e => {
-        params.previousActiveTool = params.activeTool;
-        if (e.key == 'q') {
-            params.activeTool = 'select';
-        }
-        if (e.key == 'd') {
-            params.activeTool = 'draw';
-        }
-        // if (e.key == 'x') {
-        //     params.activeTool = 'erase';
-        // }
-        if (e.key == 'e') {
-            params.activeTool = 'edit';
-        }
-        // console.log(params.activeTool + " " + params.previousActiveTool);
-    });
+    //setup keybindings for the tool modes
+    // document.addEventListener('keydown', e => {
+    //     params.previousActiveTool = params.activeTool;
+    //     if (e.key == 'q') {
+    //         params.activeTool = 'select';
+    //     }
+    //     if (e.key == 'd') {
+    //         params.activeTool = 'draw';
+    //     }
+    //     // if (e.key == 'x') {
+    //     //     params.activeTool = 'erase';
+    //     // }
+    //     if (e.key == 'e') {
+    //         params.activeTool = 'edit';
+    //     }
+    //     // console.log(params.activeTool + " " + params.previousActiveTool);
+    // });
 
-    document.addEventListener('keyup', e => {
-        if (['q', 'd', 'e', 'x'].includes(e.key)) {
-            params.activeTool = params.defaultTool;
-            // console.log(params.activeTool + " " + params.previousActiveTool);
+    // document.addEventListener('keyup', e => {
+    //     if (['q', 'd', 'e', 'x'].includes(e.key)) {
+    //         params.activeTool = params.defaultTool;
+    //         // console.log(params.activeTool + " " + params.previousActiveTool);
+    //     }
+    // });
+
+    //loop over all selected items in the active layer and remove them
+    tool.onKeyDown = e => {
+
+        // select is the default tool 
+        params.activeTool = [params.defaultTool, 'select', 'draw', 'edit', 'erase'][
+            ['q', 'd', 'e', '\\'].indexOf(e.key) + 1
+        ];
+
+        if (params.activeTool == 'select') {
+            if (e.key == 'a' && e.modifiers.control) {
+                //clear the selection
+                console.log('clear selection');
+                paper.project.selectedItems.forEach(
+                    item => item.selected = false
+                );
+            }
+            if (e.key == 'a' && e.modifiers.shift) {
+                //iterate for all items in the active layer
+                paper.project.activeLayer.children.forEach(
+                    item=>item.fullySelected=true);
+                //paper.project.activeLayer.fullySelected = true;
+            }
+
+            if (['x','delete','backspace'].includes(e.key)) {
+                paper.project.selectedItems.forEach(e => {
+                    e.remove();
+                });
+            }
         }
-    });
+    };
+
+    tool.onKeyUp = e => {
+        if (['q', 'd', 'e', '\\'].includes(e.key)) {
+            params.activeTool = params.defaultTool;
+        }
+
+
+    };
 
     ////////////////////////////////////////////////////////////////////////////
     tool.onMouseDown = e => {
@@ -304,42 +343,7 @@ function setupDrawingTools() {
         //}
     };
 
-    //loop over all selected items in the active layer and remove them
-    tool.onKeyDown = e => {
-        if (params.activeTool == 'select') {
-            if (e.key == 'Backspace') {
 
-                paper.project.selectedItems.forEach(e => {
-                    e.remove();
-                });
-            }
-        }
-    };
-
-    // //remove all selected items in the active layer
-    // //document keybind 'delete' to remove selected items
-    // document.addEventListener('keydown', e => {
-    //     if (e.key == 'Delete' || e.key == 'Backspace') {
-    //         paper.project.selectedItems.forEach(e => {
-    //             e.remove();
-    //         });
-    //     }
-    // }
-    // );
-    tool.onKeyUp = e => {
-        if (params.activeTool == 'select') {
-            if (e.key == 'a') {
-                paper.project.activeLayer.fullySelected = true;
-            }
-
-            if (e.key == 'x') {
-                paper.project.selectedItems.forEach(e => {
-                    e.remove();
-                });
-            }
-
-        }
-    };
 
     tool.onMouseUp = e => {
         if (params.activeTool == 'draw') {
@@ -368,8 +372,6 @@ const sketch1 = _ => {
     drawBackgroundGrid(100, 'grey', 'black');
     //lock layer 0
     layers[0].locked = true;
-    layers[3].activate();
-    //layers[1].activate();
-    //drawBackgroundGrid(100, 'yellow');
+    layers[layers.length-1].activate();
 
 }
