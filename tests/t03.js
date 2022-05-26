@@ -1,3 +1,4 @@
+//const { Key } = require("paper/dist/paper-core");
 
 window.onload = _ => {
     paper.install(window);
@@ -75,34 +76,31 @@ setupGUI = _ => {
     });
 
     //add a button to the gui to add a new layer
-    layerFolder.add(params, 'addLayer').name('add layer').onChange(_ => {
-        var newLayer = new paper.Layer({
-            name: 'layer' + (layers.length),
-            visible: true,
-            opacity: 1,
-            locked: false,
-            color: '#ff0000'
-        });
+    // layerFolder.add(params, 'addLayer').name('add layer').onChange(_ => {
+    //     var newLayer = new paper.Layer({
+    //         name: 'layer' + (layers.length),
+    //         visible: true,
+    //         opacity: 1,
+    //         locked: false,
+    //         color: '#ff0000'
+    //     });
 
-        layers.push(newLayer);
-        newLayer.activate();
-
-        // console.log(layers.map(l => l.name));
-        layerlist.remove();
-        layerlist = layerFolder.add(params, 'activeLayer',
-            layers.map(l => l.name)).name('layer')
-            .onChange(updateActiveLayer).listen();
-    });
+    //     newLayer.activate();
+    //     // console.log(layers.map(l => l.name));
+    //     layerlist.remove();
+    //     layerlist = layerFolder.add(params, 'activeLayer',
+    //         layers.map(l => l.name)).name('layer')
+    //         .onChange(updateActiveLayer).listen();
+    // });
 
     //update the dropdown menu choices with the names of the layers
-    const updateLayerList = name => {
+    function updateLayerList(name) {
         paper.project.activeLayer = layers.find(l => l.name == name);
         let l = layers.find(l => l.name === value);
         // console.log(value + " " + l.name + " " + paper.project.activeLayer.name);
+    }
 
-    };
-
-    const updateActiveLayer = name => {
+    function updateActiveLayer(name) {
         let newactivelayer = layers.find(l => l.name === name);
         newactivelayer.activate();
         //(newactivelayer.name + " " + paper.project.activeLayer.name);
@@ -120,10 +118,10 @@ setupGUI = _ => {
 
     layerFolder.open();
 
-    // gui.domElement.style.display = 'none';
+    //gui.domElement.style.display = 'none';
     //setup keybinding for alt+v or shif+esc to toggle dat.gui visibility on/off
     document.addEventListener('keydown', e => {
-        if (((e.keyCode == 27 && e.shiftKey)) || (e.keyCode == 86 && e.altKey)) {
+        if ( /*((e.keyCode == 27 && e.shiftKey)) ||*/ (e.keyCode == 86 && e.altKey)) {
             gui.domElement.style.display = gui.domElement.style.display == 'none' ? 'block' : 'none';
         }
     });
@@ -256,21 +254,22 @@ function setupDrawingTools() {
         ];
 
         if (params.activeTool == 'select') {
+            // clear the selection
             if (e.key == 'a' && e.modifiers.control) {
                 //clear the selection
-                console.log('clear selection');
                 paper.project.selectedItems.forEach(
                     item => item.selected = false
                 );
             }
+            // select all
             if (e.key == 'a' && e.modifiers.shift) {
                 //iterate for all items in the active layer
                 paper.project.activeLayer.children.forEach(
-                    item=>item.fullySelected=true);
+                    item => item.fullySelected = true);
                 //paper.project.activeLayer.fullySelected = true;
             }
-
-            if (['x','delete','backspace'].includes(e.key)) {
+            // remove selected items
+            if (['x', 'delete', 'backspace'].includes(e.key)) {
                 paper.project.selectedItems.forEach(e => {
                     e.remove();
                 });
@@ -282,37 +281,37 @@ function setupDrawingTools() {
         if (['q', 'd', 'e', '\\'].includes(e.key)) {
             params.activeTool = params.defaultTool;
         }
-
-
     };
 
     ////////////////////////////////////////////////////////////////////////////
     tool.onMouseDown = e => {
         if (params.activeTool == 'draw') {
-            if (toolPath)
-                toolPath.selected = false;
+            if (toolPath) toolPath.selected = false;
 
             toolPath = new paper.Path();
             toolPath.strokeColor = params.fgcolor1;
-            toolPath.fillColor = params.bgcolor1;
+            toolPath.fillColor = null;
             //set toolpath opacity to params.opacity1
             toolPath.opacity = params.opacity1;
-
             toolPath.strokeWidth = 1;
-            toolPath.fullySelected = true;
+            //toolPath.fullySelected = true;
             toolPath.closed = false;
-        } else if (params.activeTool == 'select') {
-            //if the user presses 'a' key, add all paths to the selection
-            if (e.key == 'a') {
-                paper.project.activeLayer.selected = true;
-                console.log('selecting all');
-            }
 
+        } else if (params.activeTool == 'select') {
 
             if (e.item) {
-                e.item.selected = !e.item.selected;
+                if (e.modifiers.shift) {
+                    e.item.selected = true;
+                } else {
+                    //clear the selection
+                    //paper.project.selectedItems.clear();
+                    //toolPath.selected = false;
+                    e.item.selected = true;
+                    //de.item.selected = !e.item.selected;
+                }
+            } else {
+               
             }
-
         }
     };
 
@@ -321,12 +320,24 @@ function setupDrawingTools() {
             toolPath.add(e.point);
         } else if (params.activeTool == 'select') {
             if (e.item) {
-                if (e.key == 's') {
-                    //smooth e.item by the mouse delta
-                    e.item.smooth(
-                        { type: 'continuous', factor: .9 }
-                    );
+                if (paper.Key.isDown('s')) {
+                    paper.project.selectedItems.forEach(
+                        item => {
+                             item.simplify();
+                             item.smooth({ type: 'continuous', factor: .9 });
+                           
+                        }
+                    )
+
+
+
                 }
+                // if (paper.Key.isDown('s'))
+                //     //smooth e.item by the mouse delta
+                //     e.item.smooth(
+                //         { type: 'continuous', factor: .9 }
+                //     );
+                // }
             }
         }
     };
@@ -343,24 +354,35 @@ function setupDrawingTools() {
         //}
     };
 
-
-
     tool.onMouseUp = e => {
         if (params.activeTool == 'draw') {
 
             toolPath.add(e.point);
 
             //toolPath.smooth();
-            toolPath.closed = true;
+            if (e.modifiers.shift) {
+                toolPath.closed = true;
+                toolPath.fillColor = params.bgcolor1;
+            } else {
+                toolPath.fillColor = null;
+            }
 
-            toolPath.smooth({ type: 'continuous', factor: .9 });
-            toolPath.simplify();
+            //toolPath.smooth({ type: 'continuous', factor: .9 });
+            //toolPath.simplify();
             toolPath.selected = false;
             // toolPath = null;
         } else if (params.activeTool == 'erase') {
             console.log('erase');
             if (e.item)
                 e.item.remove();
+        } else if (params.activeTool == 'select') {
+            if (e.item) {
+            } else {
+                paper.project.selectedItems.forEach(
+                    item => item.selected = false
+                );
+            }
+            
         }
 
     };
@@ -369,9 +391,8 @@ function setupDrawingTools() {
 //// sketch 1
 const sketch1 = _ => {
     layers[0].activate();
-    drawBackgroundGrid(100, 'grey', 'black');
+    drawBackgroundGrid(100, '#222', 'black');
     //lock layer 0
     layers[0].locked = true;
-    layers[layers.length-1].activate();
-
+    layers[layers.length - 1].activate();
 }
