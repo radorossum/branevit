@@ -2,19 +2,21 @@
 window.onload = _ => {
     paper.install(window);
     paper.setup('canvas');
-    window.onresize();
     setupPaper();
     setupGUI();
     setupDrawingTools();
     sketch1();
+    window.onresize();
 }
 
 var layers = [];
 var params = {
+    //add gui button to clear the project
+    clearCanvas: _ => {},
+
     activeTool: 'select',
     previousActiveTool: 'select',
     defaultTool: 'select',
-
 
     fgcolor1: '#fff',
     bgcolor1: '#aaa',
@@ -22,14 +24,13 @@ var params = {
     fgcolor2: '#ddd',
     bgcolor2: '#baa',
     opacity2: .5,
-    clearCanvas: _ => { },
-    addLayer: _ => { },
+    clearLayer:_ => {},
+    addLayer: _ => {},
     activeLayer: 'layer3',
     visible0: true,
     visible1: true,
     visible2: true,
     visible3: true,
-
 };
 
 setupGUI = _ => {
@@ -40,16 +41,22 @@ setupGUI = _ => {
 
     ////create a dat.gui
     var gui = new dat.GUI();
-    //actions
-    //mode
-    //tool
-    //layer
-    //create a folder for the params 
+    //actions, mode, tools, layers, etc.
+
     var actionsFolder = gui.addFolder('Actions');
     var modeFolder = gui.addFolder('Mode');
     var toolFolder = gui.addFolder('Tool');
     var layerFolder = gui.addFolder('Layer');
 
+    // Actions ////////////////////////////////////////////////////////////////
+    actionsFolder.add(params, 'clearCanvas').name('Clear Canvas')
+        .onChange(setupPaper);
+
+    // Mode //////////////////////////////////////////////////////////////////
+
+    // Tool //////////////////////////////////////////////////////////////////
+
+    
     toolFolder.add(params, 'activeTool',
         ['draw', 'edit', 'select', 'erase']).name('mode')
         .onChange(value => {
@@ -63,7 +70,7 @@ setupGUI = _ => {
     toolFolder.addColor(params, 'bgcolor2').name('bgcolor2');
     toolFolder.add(params, 'opacity2', 0., 1.).name('opacity2');
 
-    layerFolder.add(params, 'clearCanvas').name('clear').onChange(_ => {
+    layerFolder.add(params, 'clearLayer').name('clear').onChange(_ => {
         paper.project.activeLayer.clear();
     });
 
@@ -120,8 +127,6 @@ setupGUI = _ => {
             gui.domElement.style.display = gui.domElement.style.display == 'none' ? 'block' : 'none';
         }
     });
-
-
 };
 
 //on resize window rebuild the paper project
@@ -129,7 +134,7 @@ window.onresize = _ => {
     paper.view.viewSize = new paper.Size(window.innerWidth, window.innerHeight);
 };
 
-const setupPaper = _ => {
+function setupPaper() {
     //clear the paper project
     paper.project.clear();
 
@@ -169,7 +174,7 @@ const setupPaper = _ => {
 
 ////////////////////////////////////////////////////////////////////////////////
 //// draw background grid
-const drawBackgroundGrid = (n = 20, fgcolor = 'black', bgcolor = 'grey', fgopacity = 1, bgopacity = 1) => {
+function drawBackgroundGrid(n = 20, fgcolor = 'black', bgcolor = 'grey', fgopacity = 1, bgopacity = 1) {
     //draw a square n x n grid with thin black lines on the background layer
     //const n = 20;
     console.log(n);
@@ -211,11 +216,11 @@ const drawBackgroundGrid = (n = 20, fgcolor = 'black', bgcolor = 'grey', fgopaci
 }
 /////////////////////////////////////////////////////////////////////////////
 //// setup drawing tools
-const setupDrawingTools = _ => {
+function setupDrawingTools() {
     //create a new tool for drawing
-    var drawTool = new paper.Tool();
-    drawTool.minDistance = 10;
-    var drawToolPath;
+    var tool = new paper.Tool();
+    tool.minDistance = 10;
+    var toolPath;
 
     //document keybind'q' to change params.activeTool to select
     document.addEventListener('keydown', e => {
@@ -226,9 +231,9 @@ const setupDrawingTools = _ => {
         if (e.key == 'd') {
             params.activeTool = 'draw';
         }
-        if (e.key == 'x') {
-            params.activeTool = 'erase';
-        }
+        // if (e.key == 'x') {
+        //     params.activeTool = 'erase';
+        // }
         if (e.key == 'e') {
             params.activeTool = 'edit';
         }
@@ -242,26 +247,23 @@ const setupDrawingTools = _ => {
         }
     });
 
-
-
-
-    drawTool.onMouseDown = e => {
+    ////////////////////////////////////////////////////////////////////////////
+    tool.onMouseDown = e => {
         if (params.activeTool == 'draw') {
-            if (drawToolPath) drawToolPath.selected = false;
+            if (toolPath)
+                toolPath.selected = false;
 
-            drawToolPath = new paper.Path();
-            drawToolPath.strokeColor = params.fgcolor1;
-            drawToolPath.fillColor = params.bgcolor1;
-            //set drawtoolpath opacity to params.opacity1
-            drawToolPath.opacity = params.opacity1;
+            toolPath = new paper.Path();
+            toolPath.strokeColor = params.fgcolor1;
+            toolPath.fillColor = params.bgcolor1;
+            //set toolpath opacity to params.opacity1
+            toolPath.opacity = params.opacity1;
 
-            drawToolPath.strokeWidth = 1;
-            drawToolPath.fullySelected = true;
-            drawToolPath.closed = false;
+            toolPath.strokeWidth = 1;
+            toolPath.fullySelected = true;
+            toolPath.closed = false;
         } else if (params.activeTool == 'select') {
             //if the user presses 'a' key, add all paths to the selection
-
-
             if (e.key == 'a') {
                 paper.project.activeLayer.selected = true;
                 console.log('selecting all');
@@ -275,29 +277,22 @@ const setupDrawingTools = _ => {
         }
     };
 
-    drawTool.onMouseDrag = e => {
+    tool.onMouseDrag = e => {
         if (params.activeTool == 'draw') {
-            drawToolPath.add(e.point);
+            toolPath.add(e.point);
         } else if (params.activeTool == 'select') {
             if (e.item) {
                 if (e.key == 's') {
                     //smooth e.item by the mouse delta
-
                     e.item.smooth(
                         { type: 'continuous', factor: .9 }
                     );
-
-
-
-
                 }
             }
         }
-
-
     };
 
-    drawTool.onMouseMove = e => {
+    tool.onMouseMove = e => {
         //  if (params.activeTool == 'draw') {
         // project.activeLayer.selected = false;
         // if (e.item) {
@@ -306,49 +301,62 @@ const setupDrawingTools = _ => {
         // } else {
         //     selectedPath = null;
         // }
-
         //}
-    }
+    };
 
     //loop over all selected items in the active layer and remove them
-    drawTool.onKeyDown = e => {
+    tool.onKeyDown = e => {
         if (params.activeTool == 'select') {
             if (e.key == 'Backspace') {
-                d
+
                 paper.project.selectedItems.forEach(e => {
                     e.remove();
                 });
             }
         }
-    }
+    };
 
-    //remove all selected items in the active layer
-    //document keybind 'delete' to remove selected items
-    document.addEventListener('keydown', e => {
+    // //remove all selected items in the active layer
+    // //document keybind 'delete' to remove selected items
+    // document.addEventListener('keydown', e => {
+    //     if (e.key == 'Delete' || e.key == 'Backspace') {
+    //         paper.project.selectedItems.forEach(e => {
+    //             e.remove();
+    //         });
+    //     }
+    // }
+    // );
+    tool.onKeyUp = e => {
+        if (params.activeTool == 'select') {
+            if (e.key == 'a') {
+                paper.project.activeLayer.fullySelected = true;
+            }
 
-        if (e.key == 'Delete' || e.key == 'Backspace') {
-            paper.project.selectedItems.forEach(e => {
-                e.remove();
-            });
+            if (e.key == 'x') {
+                paper.project.selectedItems.forEach(e => {
+                    e.remove();
+                });
+            }
+
         }
-    }
-    );
+    };
 
-    drawTool.onMouseUp = e => {
+    tool.onMouseUp = e => {
         if (params.activeTool == 'draw') {
 
-            drawToolPath.add(e.point);
+            toolPath.add(e.point);
 
-            //drawToolPath.smooth();
-            drawToolPath.closed = true;
+            //toolPath.smooth();
+            toolPath.closed = true;
 
-            drawToolPath.smooth({ type: 'continuous', factor: .9 });
-            drawToolPath.simplify();
-            drawToolPath.selected = false;
-            // drawToolPath = null;
+            toolPath.smooth({ type: 'continuous', factor: .9 });
+            toolPath.simplify();
+            toolPath.selected = false;
+            // toolPath = null;
         } else if (params.activeTool == 'erase') {
             console.log('erase');
-            if (e.item) e.item.remove();
+            if (e.item)
+                e.item.remove();
         }
 
     };
