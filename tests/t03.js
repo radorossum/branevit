@@ -1,5 +1,7 @@
 //const { Key } = require("paper/dist/paper-core");
 
+//const { project } = require("paper/dist/paper-core");
+
 window.onload = _ => {
     paper.install(window);
     paper.setup('canvas');
@@ -18,6 +20,10 @@ var params = {
     activeTool: 'select',
     previousActiveTool: 'select',
     defaultTool: 'select',
+    smoothType: 'geometric',
+    smooth: 0,
+    simplify: _ => { },
+    flatten: 0,
 
     fgcolor1: '#fff',
     bgcolor1: '#aaa',
@@ -52,6 +58,30 @@ setupGUI = _ => {
     // Actions ////////////////////////////////////////////////////////////////
     actionsFolder.add(params, 'clearCanvas').name('Clear Canvas')
         .onChange(setupPaper);
+    actionsFolder.add(params,'smoothType',['geometric','asymmetric','continuous','catmull-rom'])
+    .name('Smooth Type')
+    actionsFolder.add(params, 'smooth', -10., 10., 0.01)
+        .onChange(_ => {
+            paper.project.selectedItems.forEach(item => {
+                item.smooth({ type: params.smoothType, factor: params.smooth });
+            });
+        }
+        ).listen();
+    actionsFolder.add(params, 'simplify').onChange(
+        v => {
+            paper.project.selectedItems.forEach(item => {
+                item.simplify();
+            });
+        }
+    );
+    actionsFolder.add(params, 'flatten', 0, 100, 0.1).onChange(
+        v => {
+            paper.project.selectedItems.forEach(item => {
+                item.flatten(params.flatten);
+            });
+        }
+    ).listen();
+
 
     // Mode //////////////////////////////////////////////////////////////////
 
@@ -127,7 +157,8 @@ setupGUI = _ => {
             gui.domElement.style.display = gui.domElement.style.display == 'none' ? 'block' : 'none';
         }
     });
-};
+}
+
 
 //on resize window rebuild the paper project
 window.onresize = _ => {
@@ -269,7 +300,7 @@ function setupDrawingTools() {
         if (selectionPath) selectionPath.remove();
         if (params.activeTool == 'draw') {
 
-            if (toolPath) toolPath.selected = false;
+            // if (toolPath) toolPath.selected = false;
 
             toolPath = new paper.Path();
             toolPath.strokeColor = params.fgcolor1;
@@ -285,7 +316,8 @@ function setupDrawingTools() {
             selectionPath = new Path();
             if (e.item) {
                 if (e.modifiers.shift) {
-                    e.item.selected = true;
+                    // e.item.selected = true;
+                    e.item.selected = !e.item.selected;
                 } else {
                     //clear the selection
                     paper.project.activeLayer.selected = false;
@@ -298,8 +330,8 @@ function setupDrawingTools() {
                 if (!e.modifiers.shift)
                     paper.project.activeLayer.selected = false;
 
-                selectionPath.strokeColor = 'blue';
-                selectionPath.fillColor = 'blue';
+                selectionPath.strokeColor = 'teal';
+                selectionPath.fillColor = 'teal';
                 selectionPath.opacity = 0.3;
                 //selectionPath.fullySelected = true;
                 selectionPath.closed = true;
@@ -318,11 +350,9 @@ function setupDrawingTools() {
                         item => {
                             item.simplify();
                             //item.smooth({ type: 'continuous', factor: .9 });
-
                         }
                     )
                 }
-
             } else {
                 if (selectionPath) {
                     selectionPath.add(e.point);
@@ -373,8 +403,10 @@ function setupDrawingTools() {
             if (e.item) {
                 paper.project.activeLayer.children.forEach(
                     item => {
-                        if (item.isInside(selectionPath.bounds)) {
-                            item.selected = true;
+                        if (selectionPath.intersects(item)) {
+                            //if (selectionPath.intersect(item) !=null) {
+                            //item.selected = true;
+                            item.selected = !item.selected;
                         }
                     }
                 );
