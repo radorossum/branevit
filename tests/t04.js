@@ -9,11 +9,13 @@ window.onload = _ => {
     setupGUI();
     setupDrawingTools();
     sketch1();
+    sketch2();
     window.onresize();
 }
 
 var layers = [];
 var params = {
+    //actions
     //add gui button to clear the project
     clearCanvas: _ => { },
 
@@ -25,12 +27,17 @@ var params = {
     simplify: _ => { },
     flatten: 0,
 
+    //mode
+
+    //tools
     fgcolor1: '#fff',
     bgcolor1: '#aaa',
     opacity1: 0.5,
     fgcolor2: '#ddd',
     bgcolor2: '#baa',
     opacity2: .5,
+
+    //layers
     clearLayer: _ => { },
     addLayer: _ => { },
     activeLayer: 'layer3',
@@ -177,7 +184,6 @@ function setupPaper() {
         locked: true,
         color: 'none'
     });
-
     new paper.Layer({
         name: 'layer1',
         visible: true,
@@ -257,12 +263,7 @@ function setupDrawingTools() {
     //create a new tool for drawing
     var tool = new paper.Tool();
     tool.minDistance = 10;
-    var toolPath;
-    var mouseDownPoint = null;
-    var mouseUpPoint = null;
-    var selectionPath;
-
-
+   
     //loop over all selected items in the active layer and remove them
     tool.onKeyDown = e => {
 
@@ -302,212 +303,11 @@ function setupDrawingTools() {
     };
 
 
-    ////////////////////////////////////////////////////////////////////////////
-    var lastSelectedPath;
-    var lastSelectedSegment;
-    var movePath;
-    var segment,path;
-    tool.onMouseDown = e => {
-
-        if (selectionPath) selectionPath.remove();
-        //console.log(params.activeTool);
-        if (params.activeTool == 'draw') {
-
-            // if (toolPath) toolPath.selected = false;
-
-            toolPath = new paper.Path();
-            toolPath.strokeColor = params.fgcolor1;
-            toolPath.fillColor = null;
-            //set toolpath opacity to params.opacity1
-            toolPath.opacity = params.opacity1;
-            toolPath.strokeWidth = 1;
-            //toolPath.fullySelected = true;
-            toolPath.closed = false;
-
-        } else if (params.activeTool == 'select') {
-            if (selectionPath) selectionPath.remove();
-            selectionPath = new Path();
-            if (e.item) {
-                if (e.modifiers.shift) {
-                    // e.item.selected = true;
-                    e.item.selected = !e.item.selected;
-                } else {
-                    //clear the selection
-                    paper.project.activeLayer.selected = false;
-                    //toolPath.selected = false;
-                    e.item.selected = true;
-
-                    //e.item.selected = !e.item.selected;
-                }
-            } else {
-                //if (!e.modifiers.shift) paper.project.activeLayer.selected = false;
-
-                selectionPath.strokeColor = 'teal';
-                selectionPath.fillColor = 'teal';
-                selectionPath.opacity = 0.5;
-                selectionPath.selected = true;
-                selectionPath.closed = true;
-                paper.project.activeLayer.selected = false;
-            }
-
-        } else if (params.activeTool == 'edit') {
-            segment=path=null;
-            var hitResult = paper.project.hitTest(e.point, hitOptions);
-            if (!hitResult) {
-
-                return false;
-            } else {
-                console.log(hitResult);
-            }
-
-            if (e.modifiers.shift) {
-                if (hitResult.type == 'segment') {
-                    console.log('removing segment');
-                    hitResult.segment.remove();
-                };
-                return;
-            } else {
-                if (hitResult) {
-                    path = hitResult.item;
-                    if (hitResult.type == 'segment') {
-                        segment = hitResult.segment;
-                    } else if (hitResult.type == 'stroke') {
-                        var location = hitResult.location;
-                        segment = path.insert(location.index + 1, e.point);
-                        path.smooth();
-                    }
-                }
-            }
-            movePath = hitResult.type == 'fill';
-            if (movePath) {
-                paper.project.activeLayer.addChild(hitResult.item);
-            }
-        } else {
-
-
-        }
-
-    };
-
-    tool.onMouseDrag = e => {
-        if (params.activeTool == 'draw') {
-            toolPath.add(e.point);
-        } else if (params.activeTool == 'select') {
-            if (e.item) {
-                if (paper.Key.isDown('s')) {
-                    paper.project.selectedItems.forEach(
-                        item => {
-                            item.simplify();
-                            //item.smooth({ type: 'continuous', factor: .9 });
-                        }
-                    )
-                }
-            } else {
-                if (selectionPath) {
-                    selectionPath.add(e.point);
-                } else {
-                    selectionPath = new Path();
-                    selectionPath.add(e.point);
-                }
-
-            }
-        }
-    }
-
-    tool.onMouseMove = e => {
-        if (params.activeTool == 'edit') {
-            project.activeLayer.selected = false;
-            if (e.item)
-                e.item.selected = true;
-        }
-        //  if (params.activeTool == 'draw') {
-        // project.activeLayer.selected = false;
-        // if (e.item) {
-        //     e.item.selected = true;
-        //     selectedPath = event.item;
-        // } else {
-        //     selectedPath = null;
-        // }
-        //}
-    };
-
-    tool.onMouseUp = e => {
-        if (params.activeTool == 'draw') {
-
-            toolPath.add(e.point);
-
-            //toolPath.smooth();
-            if (e.modifiers.shift) {
-                toolPath.closed = true;
-                toolPath.fillColor = params.bgcolor1;
-            } else {
-                toolPath.fillColor = null;
-            }
-
-            //toolPath.smooth({ type: 'continuous', factor: .9 });
-            //toolPath.simplify();
-            toolPath.selected = false;
-            // toolPath = null;
-        }
-        if (params.activeTool == 'erase') {
-            console.log('erase');
-            if (e.item)
-                e.item.remove();
-
-        }
-        if (params.activeTool == 'select') {
-            if (e.item) {
-                paper.project.activeLayer.children.forEach(
-                    item => {
-                        if (selectionPath.intersects(item)) {
-                            //if (selectionPath.intersect(item) !=null) {
-                            //item.selected = true;
-                            item.selected = !item.selected;
-                        }
-                    }
-                );
-                selectionPath.remove();
-                selectionPath = null;
-            } else {
-                selectionPath.add(e.point);
-                //select all items contained in the selection path
-                if (selectionPath.length > 1) {
-                    // selectionPath.simplify();
-                    paper.project.activeLayer.children.forEach(
-                        item => {
-                            if (item.isInside(selectionPath.bounds)) {
-                                item.selected = true;
-                            }
-                        }
-                    );
-                    selectionPath.remove();
-                    selectionPath = null;
-
-                }
-                // paper.project.selectedItems.forEach(
-                //     item => item.selected = false
-                // );
-                //  selectionPath = null;;
-            }
-
-
-        }
-
-        if (params.activeTool == 'edit') {
-            if (segment) {
-                segment.point += e.delta;
-                path.smooth();
-            } else if (path) {
-                path.position += e.delta;
-            }
-        }
-
-    };
 }
 
 /////////////////////////////////
 //// sketch 1
-const sketch1 = _ => {
+function sketch1() {
     layers[0].activate();
     drawBackgroundGrid(100, '#222', 'black');
     //lock layer 0
@@ -515,3 +315,44 @@ const sketch1 = _ => {
     layers[layers.length - 1].activate();
 }
 
+/////////////////////////////////
+//// sketch 2
+
+function sketch2() {
+    createRandomPaths( {
+        paths: 5,
+        minPoints: 5,
+        maxPoints: 15,
+        minRadius: 30,
+        maxRadius: 90
+    });
+
+}
+function createRandomPaths(...values) {
+	var radiusDelta = values.maxRadius - values.minRadius;
+	var pointsDelta = values.maxPoints - values.minPoints;
+	for (var i = 0; i < values.paths; i++) {
+		var radius = values.minRadius + Math.random() * radiusDelta;
+		var points = values.minPoints + Math.floor(Math.random() * pointsDelta);
+		//var path = createBlob(view.size * paper.Point.random(), radius, points);
+        var path = createBlob(view.center, radius, points);
+		var lightness = (Math.random() - 0.5) * 0.4 + 0.4;
+		var hue = Math.random() * 360;
+		path.fillColor = { hue: hue, saturation: 1, lightness: lightness };
+		path.strokeColor = 'black';
+	};
+}
+
+function createBlob(center, maxRadius, points) {
+	var path = new paper.Path();
+	path.closed = true;
+	for (var i = 0; i < points; i++) {
+		var delta = new paper.Point({
+			length: (maxRadius * 0.5) + (Math.random() * maxRadius * 0.5),
+			angle: (360 / points) * i
+		});
+		path.add(center.x+delta.x,center.y+delta.y);
+	}
+	path.smooth();
+	return path;
+}
