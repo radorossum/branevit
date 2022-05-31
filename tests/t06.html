@@ -1,11 +1,12 @@
-<title>JavaScript <=> PaperScript example</title>
+<title>JavaScript PaperScript example</title>
 
 <code mode="text/html">
 <!DOCTYPE html>
 <html>
 <head>
 <script type="text/javascript" src="../lib/paper-full.min.js"></script>
-<script type="text/paperscript" canvas="myCanvas">
+<script type ="text/javascript" src="../lib/dat.gui.min.js"></script>
+<!-- <script type="text/paperscript" canvas="myCanvas">
 // Create a Paper.js Path to draw a line into it:
 var path = new Path();
 path.strokeColor = 'black';
@@ -19,28 +20,56 @@ path.lineTo(start + [ globals.a, globals.b ]);
 globals.lineTo = function(c,d) {
 path.lineTo(new Point(c, d));
 }
-</script>
+</script> -->
+<script type="text/paperscript" src="t06.js" canvas="canvas"></script>
 
 <script type="text/javascript">
-// To avoid race problem, the following should not be in window.onload as the PaperScript might run before.
-window.globals = { a:50, b:-50 };
+    // To avoid race problem, the following should not be in window.onload as the PaperScript might run before.
+    params = window.globals =
+    {
+        a: 50,
+        b: -50,
+        setupPaper: _=>{},
+        clearCanvas: _ => { },
+    };
 
-// Update the path from the JavaScript code.
-window.onload = function() {
-document.getElementById('lineToBtn').onclick = function() {
-let x = Number(document.getElementById('x').value);
-let y = Number(document.getElementById('y').value);
-window.globals.lineTo(x,y);
-};
-};
+
+    var actionsFolder = gui.addFolder('Actions');
+    var modeFolder = gui.addFolder('Mode');
+    var toolFolder = gui.addFolder('Tool');
+    var layerFolder = gui.addFolder('Layer');
+
+    actionsFolder.add(params, 'a', -100, 100).step(1);
+    actionsFolder.add(params,'setupPaper').name('setup')
+        .onChange(_=>params.sketch1());
+    actionsFolder.add(params, 'clearCanvas').name('clear');
+    actionsFolder.open();
+    // Update the path from the JavaScript code.
+    window.onload = function () {
+        // document.getElementById('lineToBtn').onclick = function () {
+        //     let x = Number(document.getElementById('x').value);
+        //     let y = Number(document.getElementById('y').value);
+        //     window.globals.lineTo(x, y);
+        // };
+
+    };
+    var gui;
+    window.onresize = function () {
+            //create new dat.gui 
+    if (gui) {
+        gui.destroy();
+    }
+
+     gui = new dat.GUI();
+        paper.view.update();
+    };
 </script>
 </head>
 <body>
-<input type="range" id="x" from="0" to="150" default="75"></input>
+<!-- <input type="range" id="x" from="0" to="150" default="75"></input>
 <input type="range" id="y" from="0" to="150" default="75" ></input>
 <button type="number" id="lineToBtn">LineTo</button>
-<br>
-<canvas id="myCanvas" resize></canvas>
+<br> -->
+<canvas id="canvas" resize></canvas>
 </body>
 </html>
-
