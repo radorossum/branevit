@@ -4,7 +4,8 @@
 }
 body,html {
     height: 100%;
-    background-color: dimgray;
+    /* background-color: dimgray; */
+    background-color: rgb(0, 0, 0);
 }
 
 html,

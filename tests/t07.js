@@ -1,8 +1,12 @@
 
 //import *  as p from "paper";
 
+// const { Layer } = require("paper/dist/paper-core");
+
 //const { project } = require("paper/dist/paper-core");
 
+// parameters
+///////////////////////////////////////////////
 
 ///////////////////////////////////
 // UI
@@ -19,6 +23,7 @@ var paramActions = {
         project.selectedItems.forEach(
             function (item) {
                 item.fillColor = paramPalette.randomColor();
+                item.strokeColor = paramPalette.randomColor();
             }
         );
 
@@ -265,3 +270,11 @@ function onResize() {
     view.viewSize = new Size(window.innerWidth, window.innerHeight);
     console.log("resized to " + view.viewSize.width + "," + view.viewSize.height)
 }
+
+// layers
+///////////////////////////////////////////////
+layers = project.layers;
+new Layer({name:'background'});
+new Layer({name:'layer1'});
+new Layer({name:'layer2'});
+new Layer({name:'layer3'});
