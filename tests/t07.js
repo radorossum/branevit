@@ -13,12 +13,24 @@ var gui = new dat.GUI();
 var paramActions = {
     clear: function () { project.activeLayer.removeChildren() },
     selectAll: function () { project.activeLayer.selected = true },
-    clearSelection: function () { },
+    clearSelection: function () { project.activeLayer.selected = false},
+    resize: function () { onResize() },
+    palettize: function () {
+        project.selectedItems.forEach(
+            function (item) {
+                item.fillColor = paramPalette.randomColor();
+            }
+        );
+
+    }
 }
 var guiActions = gui.addFolder('Actions');
 
 guiActions.add(paramActions, 'clear');
 guiActions.add(paramActions, 'selectAll');
+guiActions.add(paramActions, 'clearSelection');
+guiActions.add(paramActions, 'resize');
+guiActions.add(paramActions, 'palettize');
 
 //gui.add(clearButton= { clear:function(){ project.activeLayer.removeChildren() }},'clear');
 
@@ -49,17 +61,17 @@ var paramPalette = {
     ncolors: 5,
     color0: '#000000',
     prob0: .5,
-    color1: '#ff0000',
+    color1:'rgb(255,255,255)',
     prob1: .5,
-    color2: '#00ff00',
+    color2: '#333',
     prob2: 0.,
-    color3: '#0000ff',
+    color3: '#888',
     prob3: 0.,
-    color4: '#ffff00',
+    color4: '#999',
     prob4: 0.,
-    color5: '#00ffff',
+    color5: '#aaa',
     prob5: 0.,
-    palette: [],
+    palette: ['#000','#fff'],
     colors: [],
     colorWeights: [],
     build: function () {
@@ -83,11 +95,14 @@ var paramPalette = {
     sorthue: function () { },
     sortlightness: function () { },
     randomize: function () { },
+    randomColor: function () {
+        return this.palette[Math.floor(Math.random() * this.palette.length)];
+    }
 
 };
 
 var guiPalette = gui.addFolder('Palette');
-guiPalette.add(paramPalette, 'ncolors', 1, 10).step(1);
+guiPalette.add(paramPalette, 'ncolors', 1, 256).step(1);
 guiPalette.add(paramPalette, 'prob0', 0, 1).step(0.01);
 guiPalette.add(paramPalette, 'prob1', 0, 1).step(0.01);
 guiPalette.add(paramPalette, 'prob2', 0, 1).step(0.01);
@@ -189,7 +204,7 @@ function onMouseDown(event) {
     }
     //  movePath = hitResult.type == 'fill';
     if (hitResult && hitResult.type == 'fill') {
-        project.activeLayer.addChild(hitResult.item);
+        //project.activeLayer.addChild(hitResult.item);
     }
 }
 
