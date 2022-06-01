@@ -1,23 +1,23 @@
 
 //import *  as p from "paper";
-
-// const { Layer } = require("paper/dist/paper-core");
-
-//const { project } = require("paper/dist/paper-core");
+//const {project, Point, Size, View, Layer } = require("paper/dist/paper-core");
 
 // parameters
 ///////////////////////////////////////////////
 
-///////////////////////////////////
-// UI
-///////////////////////////////////
-
-var gui = new dat.GUI();
 
 var paramActions = {
     clear: function () { project.activeLayer.removeChildren() },
     selectAll: function () { project.activeLayer.selected = true },
-    clearSelection: function () { project.activeLayer.selected = false},
+    clearSelection: function () {
+        project.activeLayer.selected = false;
+        //clear selection from all layers
+        project.layers.forEach(
+            function (layer) {
+                layer.selected = false;
+            }
+        );
+    },
     resize: function () { onResize() },
     palettize: function () {
         project.selectedItems.forEach(
@@ -26,39 +26,30 @@ var paramActions = {
                 item.strokeColor = paramPalette.randomColor();
             }
         );
-
+    },
+    drawPalette: drawPalette,
+    delete: function () {
+        project.selectedItems.forEach(
+            function (item) { item.remove(); }
+        );
     }
 }
-var guiActions = gui.addFolder('Actions');
 
-guiActions.add(paramActions, 'clear');
-guiActions.add(paramActions, 'selectAll');
-guiActions.add(paramActions, 'clearSelection');
-guiActions.add(paramActions, 'resize');
-guiActions.add(paramActions, 'palettize');
+var paramTools = {
+    tools: ['select', 'edit', 'draw', 'erase'],
+    activeTool: 'select',
+    defaultTool: 'select',
+}
 
-//gui.add(clearButton= { clear:function(){ project.activeLayer.removeChildren() }},'clear');
-
-var guiGenerate = gui.addFolder('Generate');
 var paramRndBlobs = {
 
     paths: 5,
     minPoints: 3,
     maxPoints: 5,
     minRadius: .1,
-    maxRadius: .5,
+    maxRadius: .3,
     create: createRandomBlobs,
 };
-var guiGenRndBlobs = guiGenerate.addFolder('Random Blobs');
-guiGenRndBlobs.add(paramRndBlobs, 'paths', 1, 100).step(1);
-guiGenRndBlobs.add(paramRndBlobs, 'minPoints', 1, 100).step(1);
-guiGenRndBlobs.add(paramRndBlobs, 'maxPoints', 1, 100).step(1);
-guiGenRndBlobs.add(paramRndBlobs, 'minRadius', 0., 1.).step(0.01);
-guiGenRndBlobs.add(paramRndBlobs, 'maxRadius', 0., 1).step(0.01);
-guiGenRndBlobs.add(paramRndBlobs, 'create');
-
-guiGenerate.open();
-guiGenRndBlobs.open();
 
 // Palette
 ///////////////////////////////////
@@ -66,17 +57,17 @@ var paramPalette = {
     ncolors: 5,
     color0: '#000000',
     prob0: .5,
-    color1:'rgb(255,255,255)',
+    color1: 'rgb(255,255,255)',
     prob1: .5,
     color2: '#333',
     prob2: 0.,
-    color3: '#888',
+    color3: '#666',
     prob3: 0.,
     color4: '#999',
     prob4: 0.,
-    color5: '#aaa',
+    color5: '#bbb',
     prob5: 0.,
-    palette: ['#000','#fff'],
+    palette: ['#000', '#fff'],
     colors: [],
     colorWeights: [],
     build: function () {
@@ -93,9 +84,6 @@ var paramPalette = {
                 if (this.palette.length >= this.ncolors) break;
             }
         }
-
-        console.log(this.colorWeights);
-        console.log(this.palette);
     },
     sorthue: function () { },
     sortlightness: function () { },
@@ -103,25 +91,18 @@ var paramPalette = {
     randomColor: function () {
         return this.palette[Math.floor(Math.random() * this.palette.length)];
     }
-
 };
 
-var guiPalette = gui.addFolder('Palette');
-guiPalette.add(paramPalette, 'ncolors', 1, 256).step(1);
-guiPalette.add(paramPalette, 'prob0', 0, 1).step(0.01);
-guiPalette.add(paramPalette, 'prob1', 0, 1).step(0.01);
-guiPalette.add(paramPalette, 'prob2', 0, 1).step(0.01);
-guiPalette.add(paramPalette, 'prob3', 0, 1).step(0.01);
-guiPalette.add(paramPalette, 'prob4', 0, 1).step(0.01);
-guiPalette.add(paramPalette, 'prob5', 0, 1).step(0.01);
-guiPalette.addColor(paramPalette, 'color0');
-guiPalette.addColor(paramPalette, 'color1');
-guiPalette.addColor(paramPalette, 'color2');
-guiPalette.addColor(paramPalette, 'color3');
-guiPalette.addColor(paramPalette, 'color4');
-guiPalette.addColor(paramPalette, 'color5');
-guiPalette.add(paramPalette, 'build');
-
+// Layers
+///////////////////////////////////
+var paramLayers = {
+    layers: project.layers,
+    activeLayer: 'layer0',
+    layer0: true,
+    layer1: true,
+    layer2: true,
+    layer3: true,
+}
 // Generators
 ///////////////////////////////////////////////
 
@@ -156,8 +137,23 @@ function createBlob(center, maxRadius, points) {
     return path;
 }
 
+function drawPalette(palette) {
+    var palette = palette || paramPalette.palette;
+    var ncolors = palette.length;
+    var w = view.size.width / ncolors;
+    var h = view.size.height;
+    for (var i = 0; i < ncolors; i++) {
+        var color = palette[i];
+        var rect = new Path.Rectangle({
+            point: [i * w, 0],
+            size: [w, h],
+            fillColor: color,
+            //strokeColor:'white'
+        });
+    }
+}
 // Tools
-///////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
 
 var hitOptions = {
     segments: true,
@@ -226,7 +222,6 @@ function onMouseDrag(event) {
         //selectedPath.position += event.delta;
     }
 
-    //console.log(project.selectedItems);
     if (Key.isDown('t')) {
         project.selectedItems.forEach(
             function (item) {
@@ -271,10 +266,97 @@ function onResize() {
     console.log("resized to " + view.viewSize.width + "," + view.viewSize.height)
 }
 
-// layers
-///////////////////////////////////////////////
-layers = project.layers;
-new Layer({name:'background'});
-new Layer({name:'layer1'});
-new Layer({name:'layer2'});
-new Layer({name:'layer3'});
+
+
+// UI
+////////////////////////////////////////////////////////////
+
+var gui = new dat.GUI();
+
+var guiActions = gui.addFolder('Actions');
+guiActions.add(paramActions, 'clear');
+guiActions.add(paramActions, 'selectAll');
+guiActions.add(paramActions, 'clearSelection');
+guiActions.add(paramActions, 'delete');
+guiActions.add(paramActions, 'resize');
+guiActions.add(paramActions, 'palettize');
+guiActions.add(paramActions, 'drawPalette');
+
+var guiTools = gui.addFolder('Tools');
+guiTools.add(paramTools, 'activeTool', paramTools.tools)
+    .onChange(function (v) { paramTools.defaultTool = paramTools.activeTool }).listen();
+guiTools.add(paramTools, 'defaultTool', paramTools.tools);
+
+
+var guiGenerate = gui.addFolder('Generate');
+var guiGenRndBlobs = guiGenerate.addFolder('Random Blobs');
+guiGenRndBlobs.add(paramRndBlobs, 'paths', 1, 100).step(1);
+guiGenRndBlobs.add(paramRndBlobs, 'minPoints', 1, 100).step(1);
+guiGenRndBlobs.add(paramRndBlobs, 'maxPoints', 1, 100).step(1);
+guiGenRndBlobs.add(paramRndBlobs, 'minRadius', 0., 1.).step(0.01);
+guiGenRndBlobs.add(paramRndBlobs, 'maxRadius', 0., 1).step(0.01);
+guiGenRndBlobs.add(paramRndBlobs, 'create');
+//guiGenerate.open();
+//guiGenRndBlobs.open();
+
+var guiPalette = gui.addFolder('Palette');
+guiPalette.addColor(paramPalette, 'color0');
+guiPalette.addColor(paramPalette, 'color1');
+guiPalette.addColor(paramPalette, 'color2');
+guiPalette.addColor(paramPalette, 'color3');
+guiPalette.addColor(paramPalette, 'color4');
+guiPalette.addColor(paramPalette, 'color5');
+guiPalette.add(paramPalette, 'prob0', 0, 1).step(0.01);
+guiPalette.add(paramPalette, 'prob1', 0, 1).step(0.01);
+guiPalette.add(paramPalette, 'prob2', 0, 1).step(0.01);
+guiPalette.add(paramPalette, 'prob3', 0, 1).step(0.01);
+guiPalette.add(paramPalette, 'prob4', 0, 1).step(0.01);
+guiPalette.add(paramPalette, 'prob5', 0, 1).step(0.01);
+guiPalette.add(paramPalette, 'ncolors', 1, 256).step(1);
+guiPalette.add(paramPalette, 'build');
+
+var guiLayers = gui.addFolder('Layers');
+guiLayers.add(paramLayers, 'activeLayer', project.layers.map(function (l) { return l.name })).onChange(function (value) {
+    project.layers.filter(function (l) { return l.name == value })[0].activate();
+}).listen();
+guiLayers.add(paramLayers, 'layer0')
+    .onChange(function (v) { layers[0].visible = v }).listen();
+guiLayers.add(paramLayers, 'layer1')
+    .onChange(function (v) { layers[1].visible = v }).listen();
+guiLayers.add(paramLayers, 'layer2')
+    .onChange(function (v) { layers[2].visible = v }).listen();
+guiLayers.add(paramLayers, 'layer3')
+    .onChange(function (v) { layers[3].visible = v }).listen();
+
+guiLayers.open();
+
+// SETUP
+//////////////////////////////////////////////////////////////////////////
+function setup() {
+    console.log('setup');
+    // layers
+    ///////////////////////////////////////////////
+    project.clear();
+    //layers = project.layers;
+    new Layer({ name: 'layer0', locked: true });
+    new Layer({ name: 'layer1' });
+    new Layer({ name: 'layer2' });
+    new Layer({ name: 'layer3' });
+
+    project.layers[project.layers.length - 1].activate();
+    paramLayers.activeLayer = project.layers[project.layers.length - 1].name;
+    paramPalette.build();
+    paramRndBlobs.create();
+    paramActions.selectAll();
+    paramActions.palettize();
+    project.layers[0].activate();
+    drawPalette();
+}
+
+function draw() {
+    console.log('draw');
+}
+
+setup();
+
+window.onresize = onResize;
