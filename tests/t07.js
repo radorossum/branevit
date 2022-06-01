@@ -1,6 +1,6 @@
 
 //import *  as p from "paper";
-//const {project, Point, Size, View, Layer, Key, view } = require("paper/dist/paper-core");
+//const {project, Point,Color, Size, View, Layer, Key, view } = require("paper/dist/paper-core");
 
 
 // parameters 
@@ -115,27 +115,30 @@ var paramGrid = {
     grid: true,
     rows: 10,
     cols: 10,
-    strokeColor: '#ff00aa',
-    fillColor: '#ff00aa',
+    strokeColor: '#999',
+    fillColor: '#ff00aa', 
     opacity: 0.5,
     snap: false, 
     snapSize: 10,
     path: null,
     build: function (nrows, ncols, bb) {
+        if (paramGrid.path) {
+            paramGrid.path.removeChildren();
+        }
         nrows = nrows || paramGrid.rows;
         ncols = ncols || paramGrid.cols;
         bb = bb || view.bounds;
         var w = bb.width / ncols;
         var h = bb.height / nrows;
-        var path = paramGrid.path = new Path();
-        path.opacity = paramGrid.opacity; 
+        paramGrid.path = new Path();
+        paramGrid.path.opacity = paramGrid.opacity; 
         for (var i = 0; i < ncols; i++) {
             for (var j = 0; j < nrows; j++) {
                 var cell = new Path.Rectangle(bb.left + i * w, bb.top + j * h, w, h);
                 cell.strokeColor = paramGrid.strokeColor;
-                cell.fillColor = paramGrid.fillColor;
+                cell.fillColor =new Color( paramGrid.fillColor+'03');
                 cell.opacity = paramGrid.opacity;
-                path.add(cell);
+                paramGrid.path.add(cell);
             }
         }
     }
@@ -525,11 +528,13 @@ function setup() {
     setupGUI();
     paramLayers.activeLayer = project.layers[project.layers.length - 1].name;
     paramPalette.build();
-    paramRndBlobs.create();
+    //paramRndBlobs.create();
+    
     paramActions.selectAll();
     paramActions.palettize();
     project.layers[0].activate();
-    drawPalette();
+    paramGrid.build();
+    //drawPalette();
     project.layers[project.layers.length - 1].activate();
 }
 
