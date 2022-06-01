@@ -86,6 +86,29 @@ var paramColors = {
     fillOpacity2: 1.,
     stroke2: '#ffffff',
     strokeOpacity2: 1.,
+    removeStroke: function () {
+        project.selectedItems.forEach(function (item) {
+            item.strokeColor = 'none';
+        });
+    },
+    removeFill: function () {
+        project.selectedItems.forEach(function (item) {
+            item.fillColor = 'none';
+        });
+    },
+    applyStroke: function () {
+        project.selectedItems.forEach(function (item) {
+            item.strokeColor = new Color(paramColors.stroke1);
+            item.strokeColor.set(item.strokeColor.red, item.strokeColor.green, item.strokeColor.blue, paramColors.strokeOpacity1);
+        });
+    },
+    applyFill: function () {
+        project.selectedItems.forEach(function (item) {
+            item.fillColor = new Color(paramColors.fill1);
+            item.fillColor.set(item.fillColor.red, item.fillColor.green, item.fillColor.blue, paramColors.fillOpacity1);
+        });
+    }
+
 }
 
 var paramGrid = {
@@ -441,6 +464,15 @@ function setupGUI() {
     guiColors.add(paramColors, 'fillOpacity1', 0., 1., 0.01);
     guiColors.addColor(paramColors, 'stroke1');
     guiColors.add(paramColors, 'strokeOpacity1', 0., 1., 0.01);
+    guiColors.addColor(paramColors, 'fill2');
+    guiColors.add(paramColors, 'fillOpacity2', 0., 1., 0.01);
+    guiColors.addColor(paramColors, 'stroke2');
+    guiColors.add(paramColors, 'strokeOpacity2', 0., 1., 0.01);
+    guiColors.add(paramColors,'removeStroke');
+    guiColors.add(paramColors,'removeFill');
+    guiColors.add(paramColors,'applyStroke');
+    guiColors.add(paramColors,'applyFill');
+
     guiColors.open();
 
     ////////////////////////////////////////////////////////////
