@@ -1,8 +1,9 @@
 
 //import *  as p from "paper";
-//const {project, Point, Size, View, Layer, Key } = require("paper/dist/paper-core");
+//const {project, Point, Size, View, Layer, Key, view } = require("paper/dist/paper-core");
 
-// parameters
+
+// parameters 
 ///////////////////////////////////////////////
 var paramActions = {
     clear: function () { project.activeLayer.removeChildren() },
@@ -50,8 +51,6 @@ var paramProcess = {
             v.smooth({ type: paramProcess.smoothType, factor: paramProcess.smoothness });
 
         });
-
-
     },
     smoothness: 0.,
     smoothType: 'geometric',
@@ -69,12 +68,56 @@ var paramProcess = {
     flatness: 0.5
 }
 var paramColors = {
-    fgcolor1: '#ffffff',
-    bgcolor1: '#000000',
-    opacity1: 1,
-    fgcolor2: '#000000',
-    bgcolor2: '#ffffff',
-    opacity2: 1,
+    apply: function () {
+        //apply stroke and fill color to all selected items
+        project.selectedItems.forEach(function (item) {
+            item.strokeColor = new Color(paramColors.stroke1);
+            item.strokeColor.set(item.strokeColor.red, item.strokeColor.green, item.strokeColor.blue, paramColors.strokeOpacity1);
+            item.fillColor = new Color(paramColors.fill1);
+            item.fillColor.set(item.fillColor.red, item.fillColor.green, item.fillColor.blue, paramColors.fillOpacity1);
+
+        });
+    },
+    fill1: '#ffffff',
+    fillOpacity1: 1.,
+    stroke1: '#000000',
+    strokeOpacity1: 1.,
+    fill2: '#000000',
+    fillOpacity2: 1.,
+    stroke2: '#ffffff',
+    strokeOpacity2: 1.,
+}
+
+var paramGrid = {
+    grid: true,
+    rows: 10,
+    cols: 10,
+    strokeColor: '#ff00aa',
+    fillColor: '#ff00aa',
+    opacity: 0.5,
+    snap: false, 
+    snapSize: 10,
+    path: null,
+    build: function (nrows, ncols, bb) {
+        nrows = nrows || paramGrid.rows;
+        ncols = ncols || paramGrid.cols;
+        bb = bb || view.bounds;
+        var w = bb.width / ncols;
+        var h = bb.height / nrows;
+        var path = paramGrid.path = new Path();
+        path.opacity = paramGrid.opacity; 
+        for (var i = 0; i < ncols; i++) {
+            for (var j = 0; j < nrows; j++) {
+                var cell = new Path.Rectangle(bb.left + i * w, bb.top + j * h, w, h);
+                cell.strokeColor = paramGrid.strokeColor;
+                cell.fillColor = paramGrid.fillColor;
+                cell.opacity = paramGrid.opacity;
+                path.add(cell);
+            }
+        }
+    }
+
+
 }
 
 var paramRndBlobs = {
@@ -205,6 +248,26 @@ var selectedSegment, selectedPath;
 var movePath = false;
 var mouseDownPoint = null;
 
+function onKeyDown(event) {
+    if (event.key == 'escape') {
+        if (event.modifiers.shift) {
+            //project.activeLayer.selected = true;
+            //select all children of the active layer
+            project.activeLayer.children.forEach(function (v) {
+                v.selected = true;
+            });
+        } else
+            if (event.modifiers.control) {
+                project.activeLayer.selected = false;
+                return;
+            } else {
+                project.selectedItems.forEach(function (v) {
+                    v.selected = false;
+                });
+            }
+    }
+}
+
 function onMouseDown(event) {
     selectedSegment = selectedPath = null;
     mouseDownPoint = event.point.clone();
@@ -247,7 +310,7 @@ function onMouseDown(event) {
                 //     type:paramProcess.smoothType,
                 //     factor:paramProcess.smoothness});
                 selectedSegment.smooth();
-            } 
+            }
         }
     }
     //  movePath = hitResult.type == 'fill';
@@ -271,7 +334,7 @@ function onMouseDrag(event) {
             //     type:paramProcess.smoothType,
             //     factor:paramProcess.smoothness});
             selectedSegment.smooth();
-        } 
+        }
         //selectedPath.smooth();
     } else if (selectedPath) {
         //selectedPath.position += event.delta;
@@ -288,7 +351,7 @@ function onMouseDrag(event) {
         project.selectedItems.forEach(
             function (item) {
                 //item.rotation += event.delta.angle * 0.1;
-                item.rotate(event.delta.angle * 0.1, 
+                item.rotate(event.delta.angle * 0.1,
                     Key.isDown('shift') ? mouseDownPoint : item.position);
                 //item.position += event.delta;
             }
@@ -299,7 +362,7 @@ function onMouseDrag(event) {
         project.selectedItems.forEach(
             function (item) {
                 item.scale(1 + (event.delta.x - event.delta.y) * 0.01,
-                Key.isDown('shift') ? mouseDownPoint : item.position);
+                    Key.isDown('shift') ? mouseDownPoint : item.position);
             }
         );
     }
@@ -324,7 +387,7 @@ function onResize() {
 // UI
 ////////////////////////////////////////////////////////////
 function setupGUI() {
-    var gui = new dat.GUI();
+    gui = new dat.GUI();
 
     var guiActions = gui.addFolder('Actions');
     guiActions.add(paramActions, 'clear');
@@ -357,16 +420,28 @@ function setupGUI() {
     guiGenRndBlobs.add(paramRndBlobs, 'minRadius', 0., 1.).step(0.01);
     guiGenRndBlobs.add(paramRndBlobs, 'maxRadius', 0., 1).step(0.01);
     guiGenRndBlobs.add(paramRndBlobs, 'create');
+
+    var guiGenGrid = guiGenerate.addFolder('Grid');
+    guiGenGrid.add(paramGrid, 'grid');
+    guiGenGrid.add(paramGrid,'rows', 1, 100).step(1);
+    guiGenGrid.add(paramGrid,'cols', 1, 100).step(1);
+    guiGenGrid.addColor(paramGrid, 'strokeColor');
+    guiGenGrid.addColor(paramGrid, 'fillColor');
+    guiGenGrid.add(paramGrid, 'opacity', 0., 1.).step(0.01);
+    guiGenGrid.add(paramGrid,'snap');
+    guiGenGrid.add(paramGrid, 'build');
+
+
     //guiGenerate.open();
     //guiGenRndBlobs.open();
     ////////////////////////////////////////////////////////////
     var guiColors = gui.addFolder('Colors');
-    guiColors.addColor(paramColors, 'fgcolor1');
-    guiColors.addColor(paramColors, 'bgcolor1');
-    guiColors.add(paramColors, 'opacity1');
-    guiColors.addColor(paramColors, 'fgcolor2');
-    guiColors.addColor(paramColors, 'bgcolor2');
-    guiColors.add(paramColors, 'opacity2');
+    guiColors.add(paramColors, 'apply');
+    guiColors.addColor(paramColors, 'fill1');
+    guiColors.add(paramColors, 'fillOpacity1', 0., 1., 0.01);
+    guiColors.addColor(paramColors, 'stroke1');
+    guiColors.add(paramColors, 'strokeOpacity1', 0., 1., 0.01);
+    guiColors.open();
 
     ////////////////////////////////////////////////////////////
     var guiPalette = gui.addFolder('Palette');
@@ -423,6 +498,7 @@ function setup() {
     paramActions.palettize();
     project.layers[0].activate();
     drawPalette();
+    project.layers[project.layers.length - 1].activate();
 }
 
 function draw() {
@@ -430,5 +506,15 @@ function draw() {
 }
 
 ///////////////////////////////////////////////////////////////////
-window.onresize = onResize;
+
 setup();
+
+// document and window events
+///////////////////////////////////////////////////////////////////
+window.onresize = onResize;
+
+document.addEventListener('keydown', function (e) {
+    if ((e.keyCode == 71 && e.altKey)) {
+        gui.domElement.style.display = gui.domElement.style.display == 'none' ? 'block' : 'none';
+    }
+});
