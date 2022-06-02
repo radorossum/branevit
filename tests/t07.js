@@ -1,6 +1,7 @@
 
 //import *  as p from "paper";
-//const {project, Point,Color, Size, View, Layer, Key, view } = require("paper/dist/paper-core");
+//const {project, Point,Color, Size, View, Layer, Key, view ,Tool} = require("paper/dist/paper-core");
+//const {Path, PathSegment, Point, Color, Size, View, Layer, Key, view, Tool} = require("paper/dist/paper-core");
 
 
 // parameters 
@@ -31,11 +32,22 @@ var paramActions = {
             }
         );
     },
-    drawPalette: drawPalette,
     delete: function () {
         project.selectedItems.forEach(
             function (item) { item.remove(); }
         );
+    }
+}
+var paramBackdrop = {
+    type: 'rectangle',
+    color: 'black',
+    fillColor: 'grey',
+    strokeColor: 'grey',
+    draw: function () {
+        var b = new Path.Rectangle(view.bounds);
+        b.fillColor = this.fillColor;
+        b.sendToBack();
+        // b.strokeColor = this.strokeColor;
     }
 }
 
@@ -116,9 +128,9 @@ var paramGrid = {
     rows: 10,
     cols: 10,
     strokeColor: '#999',
-    fillColor: '#ff00aa', 
+    fillColor: '#ff00aa',
     opacity: 0.5,
-    snap: false, 
+    snap: false,
     snapSize: 10,
     path: null,
     build: function (nrows, ncols, bb) {
@@ -131,12 +143,12 @@ var paramGrid = {
         var w = bb.width / ncols;
         var h = bb.height / nrows;
         paramGrid.path = new Path();
-        paramGrid.path.opacity = paramGrid.opacity; 
+        paramGrid.path.opacity = paramGrid.opacity;
         for (var i = 0; i < ncols; i++) {
             for (var j = 0; j < nrows; j++) {
                 var cell = new Path.Rectangle(bb.left + i * w, bb.top + j * h, w, h);
                 cell.strokeColor = paramGrid.strokeColor;
-                cell.fillColor =new Color( paramGrid.fillColor+'03');
+                cell.fillColor = new Color(paramGrid.fillColor + '03');
                 cell.opacity = paramGrid.opacity;
                 paramGrid.path.add(cell);
             }
@@ -195,6 +207,25 @@ var paramPalette = {
     randomize: function () { },
     randomColor: function () {
         return this.palette[Math.floor(Math.random() * this.palette.length)];
+    },
+
+    draw: function (palette, layer, clearfirst) {
+        var palette = palette || paramPalette.palette;
+        var layer = layer || project.layers[0];
+        var clearfirst = clearfirst || true;
+        var ncolors = palette.length;
+        var w = view.size.width / ncolors;
+        var h = view.size.height;
+        if (clearfirst) layer.removeChildren();
+        for (var i = 0; i < ncolors; i++) {
+            var color = palette[i];
+            var rect = new Path.Rectangle({
+                point: [i * w, 0],
+                size: [w, h],
+                fillColor: color,
+                //strokeColor:'white'
+            });
+        }
     }
 };
 
@@ -242,26 +273,44 @@ function createBlob(center, maxRadius, points) {
     return path;
 }
 
-function drawPalette(palette, layer, clearfirst) {
-    var palette = palette || paramPalette.palette;
-    var layer = layer || project.layers[0];
-    var clearfirst = clearfirst || true;
-    var ncolors = palette.length;
-    var w = view.size.width / ncolors;
-    var h = view.size.height;
-    if (clearfirst) layer.removeChildren();
-    for (var i = 0; i < ncolors; i++) {
-        var color = palette[i];
-        var rect = new Path.Rectangle({
-            point: [i * w, 0],
-            size: [w, h],
-            fillColor: color,
-            //strokeColor:'white'
-        });
-    }
-}
+
 // Tools
 ///////////////////////////////////////////////////////////////////////////
+
+// draw tool
+////////////////////////////////////////////////
+function setupDrawingTools() {
+    toolDraw = new Tool();
+    toolDraw.minDistance = 10;
+    var toolPath;
+    var selectionPath;
+    var mouseDownPoint, mouseUpPoint;
+
+    toolDraw.onMouseDown = function (event) {
+        toolPath = new Path();
+        toolPath.strokeColor = paramPalette.randomColor();
+        toolPath.strokeWidth = 1;
+        mouseDownPoint = event.point;
+        toolPath.add(mouseDownPoint);
+    }
+
+    toolDraw.onMouseDrag = function (event) {
+        toolPath.add(event.point);
+    }
+
+    toolDraw.onMouseUp = function (event) {
+        mouseUpPoint = event.point;
+        toolPath.add(mouseUpPoint);
+        toolPath.smooth();
+        toolPath.closed = true;
+        toolPath.simplify();
+        // toolPath.removeOnDrag();
+        toolPath = null;
+    }
+
+
+}
+
 
 var hitOptions = {
     segments: true,
@@ -273,6 +322,7 @@ var hitOptions = {
 var selectedSegment, selectedPath;
 var movePath = false;
 var mouseDownPoint = null;
+
 
 function onKeyDown(event) {
     if (event.key == 'escape') {
@@ -291,6 +341,11 @@ function onKeyDown(event) {
                     v.selected = false;
                 });
             }
+    }
+    if (event.key == 'delete' || event.key == 'backspace') {
+        project.selectedItems.forEach(function (v) {
+            v.remove();
+        });
     }
 }
 
@@ -402,6 +457,8 @@ function onMouseUp(event) {
     // }
 }
 
+
+
 // global events
 ///////////////////////////////////////////////
 function onResize() {
@@ -422,12 +479,21 @@ function setupGUI() {
     guiActions.add(paramActions, 'delete');
     guiActions.add(paramActions, 'resize');
     guiActions.add(paramActions, 'palettize');
-    guiActions.add(paramActions, 'drawPalette');
+    //guiActions.add(paramActions, 'drawPalette');
     ////////////////////////////////////////////////////////////
     var guiTools = gui.addFolder('Tools');
     guiTools.add(paramTools, 'activeTool', paramTools.tools)
-        .onChange(function (v) { paramTools.defaultTool = paramTools.activeTool }).listen();
+        .onChange(function (v) {
+            console.log(v);
+            if (v == 'draw') {
+                toolDraw.activate();
+                console.log('drawing');
+            }
+            else { toolDraw.remove(); }
+            paramTools.defaultTool = paramTools.activeTool;
+        }).listen();
     guiTools.add(paramTools, 'defaultTool', paramTools.tools).listen();
+
 
     var guiProcess = gui.addFolder('Process');
     guiProcess.add(paramProcess, 'smooth');
@@ -449,12 +515,12 @@ function setupGUI() {
 
     var guiGenGrid = guiGenerate.addFolder('Grid');
     guiGenGrid.add(paramGrid, 'grid');
-    guiGenGrid.add(paramGrid,'rows', 1, 100).step(1);
-    guiGenGrid.add(paramGrid,'cols', 1, 100).step(1);
+    guiGenGrid.add(paramGrid, 'rows', 1, 100).step(1);
+    guiGenGrid.add(paramGrid, 'cols', 1, 100).step(1);
     guiGenGrid.addColor(paramGrid, 'strokeColor');
     guiGenGrid.addColor(paramGrid, 'fillColor');
     guiGenGrid.add(paramGrid, 'opacity', 0., 1.).step(0.01);
-    guiGenGrid.add(paramGrid,'snap');
+    guiGenGrid.add(paramGrid, 'snap');
     guiGenGrid.add(paramGrid, 'build');
 
 
@@ -471,10 +537,10 @@ function setupGUI() {
     guiColors.add(paramColors, 'fillOpacity2', 0., 1., 0.01);
     guiColors.addColor(paramColors, 'stroke2');
     guiColors.add(paramColors, 'strokeOpacity2', 0., 1., 0.01);
-    guiColors.add(paramColors,'removeStroke');
-    guiColors.add(paramColors,'removeFill');
-    guiColors.add(paramColors,'applyStroke');
-    guiColors.add(paramColors,'applyFill');
+    guiColors.add(paramColors, 'removeStroke');
+    guiColors.add(paramColors, 'removeFill');
+    guiColors.add(paramColors, 'applyStroke');
+    guiColors.add(paramColors, 'applyFill');
 
     guiColors.open();
 
@@ -494,6 +560,7 @@ function setupGUI() {
     guiPalette.add(paramPalette, 'prob5', 0, 1).step(0.01);
     guiPalette.add(paramPalette, 'ncolors', 1, 256).step(1);
     guiPalette.add(paramPalette, 'build');
+    guiPalette.add(paramPalette, 'draw');
     ////////////////////////////////////////////////////////////
     var guiLayers = gui.addFolder('Layers');
     guiLayers.add(paramLayers, 'activeLayer', project.layers.map(function (l) { return l.name })).onChange(function (value) {
@@ -529,13 +596,14 @@ function setup() {
     paramLayers.activeLayer = project.layers[project.layers.length - 1].name;
     paramPalette.build();
     //paramRndBlobs.create();
-    
+
     paramActions.selectAll();
     paramActions.palettize();
     project.layers[0].activate();
     paramGrid.build();
     //drawPalette();
     project.layers[project.layers.length - 1].activate();
+    setupDrawingTools();
 }
 
 function draw() {
@@ -552,6 +620,9 @@ window.onresize = onResize;
 
 document.addEventListener('keydown', function (e) {
     if ((e.keyCode == 71 && e.altKey)) {
-        gui.domElement.style.display = gui.domElement.style.display == 'none' ? 'block' : 'none';
+        if (e.shiftKey) { gui.closed ? gui.open() : gui.close(); }
+        else {
+            gui.domElement.style.display = gui.domElement.style.display == 'none' ? 'block' : 'none';
+        }
     }
 });
