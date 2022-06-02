@@ -39,17 +39,21 @@ var paramActions = {
     }
 }
 var paramBackdrop = {
-    type: 'rectangle',
-    color: 'black',
-    fillColor: 'grey',
-    strokeColor: 'grey',
-    draw: function () {
+    type: 'color',
+    fillColor: '#999',
+    strokeColor: '#999',
+    opacity:1.,
+    create: function (layer) {
+        var tmpLayer = project.activeLayer;
+        layer=layer || project.layers[0];
+        layer.activate();
         var b = new Path.Rectangle(view.bounds);
         b.fillColor = this.fillColor;
         b.sendToBack();
         // b.strokeColor = this.strokeColor;
+        tmpLayer.activate();
     }
-}
+} 
 
 var paramTools = {
     tools: ['select', 'edit', 'draw', 'erase'],
@@ -134,23 +138,23 @@ var paramGrid = {
     snapSize: 10,
     path: null,
     build: function (nrows, ncols, bb) {
-        if (paramGrid.path) {
-            paramGrid.path.removeChildren();
+        if(this.path) {
+            this.path.remove();
         }
-        nrows = nrows || paramGrid.rows;
-        ncols = ncols || paramGrid.cols;
+        nrows = nrows || this.rows;
+        ncols = ncols || this.cols;
         bb = bb || view.bounds;
         var w = bb.width / ncols;
         var h = bb.height / nrows;
-        paramGrid.path = new Path();
-        paramGrid.path.opacity = paramGrid.opacity;
+        this.path = new Path();
+        this.path.opacity = paramGrid.opacity;
         for (var i = 0; i < ncols; i++) {
             for (var j = 0; j < nrows; j++) {
                 var cell = new Path.Rectangle(bb.left + i * w, bb.top + j * h, w, h);
-                cell.strokeColor = paramGrid.strokeColor;
-                cell.fillColor = new Color(paramGrid.fillColor + '03');
-                cell.opacity = paramGrid.opacity;
-                paramGrid.path.add(cell);
+                cell.strokeColor = this.strokeColor;
+                cell.fillColor = new Color(this.fillColor + '03');
+                cell.opacity = this.opacity;
+                this.path.add(cell);
             }
         }
     }
@@ -273,7 +277,6 @@ function createBlob(center, maxRadius, points) {
     return path;
 }
 
-
 // Tools
 ///////////////////////////////////////////////////////////////////////////
 
@@ -307,8 +310,6 @@ function setupDrawingTools() {
         // toolPath.removeOnDrag();
         toolPath = null;
     }
-
-
 }
 
 
@@ -492,6 +493,7 @@ function setupGUI() {
             else { toolDraw.remove(); }
             paramTools.defaultTool = paramTools.activeTool;
         }).listen();
+
     guiTools.add(paramTools, 'defaultTool', paramTools.tools).listen();
 
 
@@ -523,6 +525,12 @@ function setupGUI() {
     guiGenGrid.add(paramGrid, 'snap');
     guiGenGrid.add(paramGrid, 'build');
 
+    var guiBackdrop = gui.addFolder('Backdrop');
+    guiBackdrop.add(paramBackdrop, 'type', ['none', 'image', 'color', 'gradient']);
+    guiBackdrop.addColor(paramBackdrop, 'fillColor');
+    guiBackdrop.addColor(paramBackdrop, 'strokeColor');
+    guiBackdrop.add(paramBackdrop, 'opacity', 0., 1.).step(0.01);
+    guiBackdrop.add(paramBackdrop, 'create');
 
     //guiGenerate.open();
     //guiGenRndBlobs.open();
@@ -597,10 +605,10 @@ function setup() {
     paramPalette.build();
     //paramRndBlobs.create();
 
-    paramActions.selectAll();
-    paramActions.palettize();
-    project.layers[0].activate();
-    paramGrid.build();
+  //  paramActions.selectAll();
+    //paramActions.palettize();
+   // project.layers[0].activate();
+   // paramGrid.build();
     //drawPalette();
     project.layers[project.layers.length - 1].activate();
     setupDrawingTools();
