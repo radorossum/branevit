@@ -10,6 +10,7 @@ window.onload = _ => {
     setupDrawingTools();
     sketch1();
     window.onresize();
+    paperjsLayersPanel.create();
 }
 
 var layers = [];

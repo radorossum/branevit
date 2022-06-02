@@ -40,12 +40,12 @@ var paramActions = {
 }
 var paramBackdrop = {
     type: 'color',
-    fillColor: '#999',
-    strokeColor: '#999',
-    opacity:1.,
+    fillColor: '#666',
+    strokeColor: '#900',
+    opacity: 1.,
     create: function (layer) {
         var tmpLayer = project.activeLayer;
-        layer=layer || project.layers[0];
+        layer = layer || project.layers[0];
         layer.activate();
         var b = new Path.Rectangle(view.bounds);
         b.fillColor = this.fillColor;
@@ -53,7 +53,7 @@ var paramBackdrop = {
         // b.strokeColor = this.strokeColor;
         tmpLayer.activate();
     }
-} 
+}
 
 var paramTools = {
     tools: ['select', 'edit', 'draw', 'erase'],
@@ -138,7 +138,7 @@ var paramGrid = {
     snapSize: 10,
     path: null,
     build: function (nrows, ncols, bb) {
-        if(this.path) {
+        if (this.path) {
             this.path.remove();
         }
         nrows = nrows || this.rows;
@@ -271,7 +271,7 @@ function createBlob(center, maxRadius, points) {
             length: (maxRadius * 0.5) + (Math.random() * maxRadius * 0.5),
             angle: (360 / points) * i
         });
-        path.add(center + delta);
+        path.add(center.add(delta));
     }
     path.smooth();
     return path;
@@ -280,37 +280,74 @@ function createBlob(center, maxRadius, points) {
 // Tools
 ///////////////////////////////////////////////////////////////////////////
 
-// draw tool
-////////////////////////////////////////////////
-function setupDrawingTools() {
-    toolDraw = new Tool();
-    toolDraw.minDistance = 10;
-    var toolPath;
-    var selectionPath;
-    var mouseDownPoint, mouseUpPoint;
+// // draw tool
+// var toolDraw = new Tool();
+// ////////////////////////////////////////////////
+// function setupDrawTool() {
 
-    toolDraw.onMouseDown = function (event) {
-        toolPath = new Path();
-        toolPath.strokeColor = paramPalette.randomColor();
-        toolPath.strokeWidth = 1;
-        mouseDownPoint = event.point;
-        toolPath.add(mouseDownPoint);
-    }
+//     toolDraw.minDistance = 10;
+//     var toolPath;
+//     var selectionPath;
+//     var mouseDownPoint, mouseUpPoint;
 
-    toolDraw.onMouseDrag = function (event) {
-        toolPath.add(event.point);
-    }
+//     toolDraw.onMouseDown = function (event) {
+//         toolPath = new Path();
+//         toolPath.strokeColor = paramPalette.randomColor();
+//         toolPath.strokeWidth = 1;
+//         mouseDownPoint = event.point;
+//         toolPath.add(mouseDownPoint);
+//     }
 
-    toolDraw.onMouseUp = function (event) {
-        mouseUpPoint = event.point;
-        toolPath.add(mouseUpPoint);
-        toolPath.smooth();
-        toolPath.closed = true;
-        toolPath.simplify();
-        // toolPath.removeOnDrag();
-        toolPath = null;
-    }
-}
+//     toolDraw.onMouseDrag = function (event) {
+//         toolPath.add(event.point);
+//     }
+
+//     toolDraw.onMouseUp = function (event) {
+//         mouseUpPoint = event.point;
+//         toolPath.add(mouseUpPoint);
+//         toolPath.smooth();
+//         toolPath.closed = true;
+//         toolPath.simplify();
+//         // toolPath.removeOnDrag();
+//         toolPath = null;
+//     }
+//     toolDraw.remove();
+// }
+
+
+// var toolSelect = new Tool();
+// function setupSelectTool() {
+
+//     // toolSelect.remove();
+//     toolSelect.minDistance = 10;
+
+//     toolSelect.selectionPath = new Path();
+//     toolSelect.selectionPath.strokeColor = 'red';
+//     toolSelect.selectionPath.strokeWidth = 1;
+
+//     toolSelect.onMouseDown = function (event) {
+//         toolSelect.selectionPath.remove();
+//         toolSelect.selectionPath = new Path();
+//         toolSelect.selectionPath.strokeColor = 'red';
+//         toolSelect.selectionPath.strokeWidth = 1;
+//         toolSelect.selectionPath.add(event.point);
+//         console.log('mouse down' + event.point.x + " " + event.point.y);
+//     }
+
+//     toolSelect.onMouseDrag = function (event) {
+//         toolSelect.selectionPath.add(event.point);
+//     }
+
+//     toolSelect.onMouseUp = function (event) {
+//         toolSelect.selectionPath.add(event.point);
+//         toolSelect.selectionPath.smooth();
+//         toolSelect.selectionPath.closed = true;
+//         toolSelect.selectionPath.simplify();
+//         //toolSelect.selectionPath = null;
+//     }
+
+
+// }
 
 
 var hitOptions = {
@@ -486,13 +523,17 @@ function setupGUI() {
     guiTools.add(paramTools, 'activeTool', paramTools.tools)
         .onChange(function (v) {
             console.log(v);
-            if (v == 'draw') {
+            if (v === 'draw') {
                 toolDraw.activate();
                 console.log('drawing');
-            }
-            else { toolDraw.remove(); }
+            } //else { toolDraw.remove(); }
+
+            if (v === 'select') {
+                toolSelect.activate();
+                console.log('selecting');
+            }// else { toolSelect.remove(); }
             paramTools.defaultTool = paramTools.activeTool;
-        }).listen();
+        });
 
     guiTools.add(paramTools, 'defaultTool', paramTools.tools).listen();
 
@@ -603,15 +644,17 @@ function setup() {
     setupGUI();
     paramLayers.activeLayer = project.layers[project.layers.length - 1].name;
     paramPalette.build();
+    paramBackdrop.create();
     //paramRndBlobs.create();
 
-  //  paramActions.selectAll();
+    //  paramActions.selectAll();
     //paramActions.palettize();
-   // project.layers[0].activate();
-   // paramGrid.build();
+    // project.layers[0].activate();
+    // paramGrid.build();
     //drawPalette();
     project.layers[project.layers.length - 1].activate();
-    setupDrawingTools();
+   // setupDrawTool();
+  //  setupSelectTool();
 }
 
 function draw() {
@@ -634,3 +677,4 @@ document.addEventListener('keydown', function (e) {
         }
     }
 });
+
