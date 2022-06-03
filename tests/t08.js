@@ -1,61 +1,34 @@
+
 let gui;
 
 window.onload = () => {
     // Setup Paper
     p = paper;
+    pp = paper.project;
     p.setup(document.querySelector('canvas'));
     p.install(window);
 
+
     gui = new dat.GUI();
-
-
-
-    // Tool Path, draws paths on mouse-drag.
-    // Note: Wrap each Tool in an IIFE to avoid polluting the 
-    //       global scope with variables related with that Tool.
-
-
 
     setupTools();
     setupLayers();
     setupGUI();
 
-    paperjsLayersPanel.create(
-        {
-            title: 'layers',
-            //draggable:true,
-            callback: function (panel) {
-                console.log(panel);
-            }
-        }
-    );
- //    console.log(paperjsLayersPanel);
-
 }
 
-
 function setupLayers() {
-    // Create a new Layer
-   // const layer = new p.Layer();
-    let layer = new p.Layer();
-
-    layer.name = 'Layer 0';
-    // p.project.addLayer(layer);
-    p.project.activeLayer = layer;
+    p.blendModes = ['normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard- light', 'color-dodge', 'color-burn', 'darken', 'lighten', 'difference', 'exclusion', 'hue', 'saturation', 'luminosity', 'color', 'add', 'subtract', 'average', 'pin-light', 'negation', 'source-over', 'source-in', 'source-out', 'source-atop', 'destination-over', 'destination-in', 'destination-out', 'destination-atop', 'lighter', 'darker', 'copy', 'xor'];
 
     p.project.layerInterface = {
         layerNames: _ => {
             p.project.layers.map(l => l.name);
         },
         add: () => {
-            p.project.insertLayer(p.project.activeLayer.index+1, layer = new p.Layer());
-           // const layer = new p.Layer();
-            //find the layer name with the largest trailing number in the layer.name
+            p.project.insertLayer(p.project.activeLayer.index + 1, layer = new p.Layer());
             if (p.project.layers.length === 0) {
                 layer.name = 'Layer 0';
             }
-           
-            //find the largest of the trailing numbers in the layer names and add one
 
             let largest = 0;
             p.project.layers.forEach(l => {
@@ -66,8 +39,6 @@ function setupLayers() {
             });
             layer.name = 'Layer ' + (largest + 1);
             layer.activate();
-            
-           // p.project.insertLayer(p.project.activeLayer.index, layer);
 
         },
         remove: () => {
@@ -83,7 +54,6 @@ function setupLayers() {
         moveDown: () => {
             let l = p.project.activeLayer;
             p.project.activeLayer.moveBelow(p.project.activeLayer.previousSibling)
-
             l.activate();
 
         },
@@ -91,12 +61,70 @@ function setupLayers() {
         visible: true,
         selected: false,
         current: '_',
+        name: '...',
+        opacity: 1.,
+        style: '',
 
     }
+    // Create a new Layer
+
+    let layer = new p.Layer({ name: 'Layer 0' });
 
 }
+
 function setupTools() {
-    p.tools.activeTool = 'line';
+
+    (() => {
+        const tool = new p.Tool();
+        tool.name = 'pan';
+
+        let oldPointViewCoords;
+
+
+        tool.onMouseDown = e => {
+            oldPointViewCoords = p.view.projectToView(e.point);
+        }
+
+        tool.onMouseDrag = e => {
+            const delta = e.point.subtract(p.view.viewToProject(oldPointViewCoords));
+            oldPointViewCoords = p.view.projectToView(e.point);
+            p.view.translate(delta);
+        }
+    })();
+
+
+    (() => {
+        const tool = new p.Tool();
+        tool.name = 'draw';
+        tool.minDistance = 10;
+        let path;
+        let selectionPath;
+        let mouseDownPoint, mouseUpPoint;
+
+        tool.onMouseDown = function (event) {
+            path = new p.Path();
+            // path.strokeColor = paramPalette.randomColor();
+            path.strokeColor = p.Color.random();
+            path.strokeWidth = 1;
+            mouseDownPoint = event.point;
+            path.add(mouseDownPoint);
+        }
+
+        tool.onMouseDrag = function (event) {
+            path.add(event.point);
+        }
+
+        tool.onMouseUp = function (event) {
+            mouseUpPoint = event.point;
+            path.add(mouseUpPoint);
+            path.smooth();
+            if (event.modifiers.alt)
+                path.closed = true;
+            path.simplify();
+            // toolPath.removeOnDrag();
+            path = null;
+        }
+    })();
 
     (() => {
         const tool = new p.Tool()
@@ -128,18 +156,24 @@ function setupTools() {
             })
         }
     })();
-}
+
+    p.tools.activeTool = 'draw';
+   
+    p.tools.setActiveTool = (name) => {
+        p.tools.activeTool = name;
+        const tool = p.tools.find(tool => tool.name === name);
+        tool.activate();
+    };
+    p.tools.setActiveTool(p.tools.activeTool); // activate the tool
+} 
 
 function setupGUI() {
-
 
     const guiToolFolder = gui.addFolder('Tools');
     guiToolFolder.add(p.tools, 'activeTool', p.tools.map(t => t.name))
         .name('active tool')
-        .onChange(name => { // find named tool
-            const tool = p.tools.find(tool => tool.name === name)
-            tool.activate()
-        })
+        .onChange(_ => p.tools.setActiveTool(_)).listen();
+
 
     guiToolFolder.open();
 
@@ -149,6 +183,12 @@ function setupGUI() {
     let updateName = (name) => {
         let l = p.project.layers.find(l => l.name === name);
         l.activate();
+        p.project.layerInterface.name = p.project.activeLayer.name;
+
+        guiLayerBlendMode.setValue(p.project.activeLayer.blendMode);
+        p.project.layerInterface.opacity = p.project.activeLayer.opacity;
+        p.project.layerInterface.style = p.project.activeLayer.style;
+        // guiLayerName.setValue(l.name);
         console.log(p.project.activeLayer.name);
     }
 
@@ -157,34 +197,53 @@ function setupGUI() {
         () => {
             guiCurrentLayer.remove();
             let layerNames = p.project.layers.map(l => l.name).reverse();
-            //reverse order of layerNames
-
             guiCurrentLayer = guiLayerFolder.add(p.project.layerInterface, 'current',
                 layerNames).onChange(updateName).listen();
 
-
             p.project.layerInterface.current = p.project.activeLayer.name;
-            //guiLayerName.updateDisplay();
-            console.log(p.project.activeLayer.name);
+            //guiLayerBlendMode.setValue(p.project.activeLayer.blendMode);
+            // guiLayerBlendMode.updateDisplay();
+            // console.log(p.project.activeLayer.name);
+
+
         };
     guiLayerFolder.add(p.project.layerInterface, 'add').onFinishChange(updateList);
     guiLayerFolder.add(p.project.layerInterface, 'remove').onFinishChange(updateList);
     guiLayerFolder.add(p.project.layerInterface, 'moveUp').onFinishChange(updateList);
     guiLayerFolder.add(p.project.layerInterface, 'moveDown').onFinishChange(updateList);
-    guiLayerFolder.add(p.project.layerInterface, 'locked')
-        .onChange(_ => p.project.activeLayer.locked = _);
-    guiLayerFolder.add(p.project.layerInterface, 'visible')
-        .onChange(_ => p.project.activeLayer.visible = _);
-    guiLayerFolder.add(p.project.layerInterface, 'selected')
-        .onChange(_ => p.project.activeLayer.selected = _);
-    guiLayerFolder.add({ showPanel: () => paperjsLayersPanel.create() }, 'showPanel');
-    // const guiLayerName = guiLayerFolder.add(p.project.activeLayer, 'name').listen();
+    let guiLayerName = guiLayerFolder.add(p.project.layerInterface, 'name')
+        .onChange(_ => {
+            p.project.layerInterface.current = _;
+            p.project.activeLayer.name = _
+        }).listen();
 
+    let guiLayerBlendMode = guiLayerFolder.add(p.project.activeLayer, 'blendMode', p.blendModes).onChange(
 
+        _ => {
+            p.project.activeLayer.blendMode = _;
+            guiLayerBlendMode.updateDisplay();
+        }).listen();
+    let guiLayerOpacity = guiLayerFolder.add(p.project.layerInterface, 'opacity', 0., 1.).onChange(_ => p.project.activeLayer.opacity = _).listen();
+    // guiLayerFolder.add(p.project.layerInterface, 'locked')
+    //     .onChange(_ => p.project.activeLayer.locked = _);
+    // guiLayerFolder.add(p.project.layerInterface, 'visible')
+    //     .onChange(_ => p.project.activeLayer.visible = _);
+    // guiLayerFolder.add(p.project.layerInterface, 'selected')
+    //     .onChange(_ => p.project.activeLayer.selected = _);
+
+    // guiLayerFolder.add()   
+    guiLayerFolder.add({
+        layerPanel: () => paperjsLayersPanel.create({
+            title: '', draggable: true
+        })
+    }, 'layerPanel').name('layer panel');
 
     let guiCurrentLayer = guiLayerFolder.add(p.project.layerInterface, 'current',
+
         p.project.layers.map(l => l.name)).onFinishChange(updateName).listen();
+
     p.project.layerInterface.current = p.project.activeLayer.name;
+    p.project.layerInterface.name = p.project.activeLayer.name;
 
     // guiLayerFolder.add(p.project.activeLayer.interface,'current', p.project.interface.layerNames())
     //     .name('active layer')

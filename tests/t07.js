@@ -280,39 +280,39 @@ function createBlob(center, maxRadius, points) {
 // Tools
 ///////////////////////////////////////////////////////////////////////////
 
-// // draw tool
-// var toolDraw = new Tool();
-// ////////////////////////////////////////////////
-// function setupDrawTool() {
+// draw tool
+var tool = new Tool();
+////////////////////////////////////////////////
+function setupDrawTool() {
 
-//     toolDraw.minDistance = 10;
-//     var toolPath;
-//     var selectionPath;
-//     var mouseDownPoint, mouseUpPoint;
+    tool.minDistance = 10;
+    var toolPath;
+    var selectionPath;
+    var mouseDownPoint, mouseUpPoint;
 
-//     toolDraw.onMouseDown = function (event) {
-//         toolPath = new Path();
-//         toolPath.strokeColor = paramPalette.randomColor();
-//         toolPath.strokeWidth = 1;
-//         mouseDownPoint = event.point;
-//         toolPath.add(mouseDownPoint);
-//     }
+    tool.onMouseDown = function (event) {
+        toolPath = new Path();
+        toolPath.strokeColor = paramPalette.randomColor();
+        toolPath.strokeWidth = 1;
+        mouseDownPoint = event.point;
+        toolPath.add(mouseDownPoint);
+    }
 
-//     toolDraw.onMouseDrag = function (event) {
-//         toolPath.add(event.point);
-//     }
+    tool.onMouseDrag = function (event) {
+        toolPath.add(event.point);
+    }
 
-//     toolDraw.onMouseUp = function (event) {
-//         mouseUpPoint = event.point;
-//         toolPath.add(mouseUpPoint);
-//         toolPath.smooth();
-//         toolPath.closed = true;
-//         toolPath.simplify();
-//         // toolPath.removeOnDrag();
-//         toolPath = null;
-//     }
-//     toolDraw.remove();
-// }
+    tool.onMouseUp = function (event) {
+        mouseUpPoint = event.point;
+        toolPath.add(mouseUpPoint);
+        toolPath.smooth();
+        toolPath.closed = true;
+        toolPath.simplify();
+        // toolPath.removeOnDrag();
+        toolPath = null;
+    }
+    tool.remove();
+}
 
 
 // var toolSelect = new Tool();
@@ -524,7 +524,7 @@ function setupGUI() {
         .onChange(function (v) {
             console.log(v);
             if (v === 'draw') {
-                toolDraw.activate();
+                tool.activate();
                 console.log('drawing');
             } //else { toolDraw.remove(); }
 
