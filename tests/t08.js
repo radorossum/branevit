@@ -29,14 +29,16 @@ window.onload = () => {
             }
         }
     );
-    console.log(paperjsLayersPanel);
+ //    console.log(paperjsLayersPanel);
 
 }
 
 
 function setupLayers() {
     // Create a new Layer
-    const layer = new p.Layer();
+   // const layer = new p.Layer();
+    let layer = new p.Layer();
+
     layer.name = 'Layer 0';
     // p.project.addLayer(layer);
     p.project.activeLayer = layer;
@@ -46,7 +48,8 @@ function setupLayers() {
             p.project.layers.map(l => l.name);
         },
         add: () => {
-            const layer = new p.Layer();
+            p.project.insertLayer(p.project.activeLayer.index+1, layer = new p.Layer());
+           // const layer = new p.Layer();
             //find the layer name with the largest trailing number in the layer.name
             if (p.project.layers.length === 0) {
                 layer.name = 'Layer 0';
@@ -62,14 +65,10 @@ function setupLayers() {
                 }
             });
             layer.name = 'Layer ' + (largest + 1);
-
+            layer.activate();
+            
            // p.project.insertLayer(p.project.activeLayer.index, layer);
 
-
-
-
-            // layer.name = 'Layer ' + (p.project.layers.length - 1);
-            p.project.activeLayer = layer
         },
         remove: () => {
             p.project.activeLayer.remove()
