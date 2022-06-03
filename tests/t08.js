@@ -5,7 +5,8 @@ window.onload = () => {
     // Setup Paper
     p = paper;
     pp = paper.project;
-    p.setup(document.querySelector('canvas'));
+    canvas = document.querySelector('canvas');
+    p.setup(canvas);
     p.install(window);
 
 
@@ -158,16 +159,48 @@ function setupTools() {
     })();
 
     p.tools.activeTool = 'draw';
-   
+
     p.tools.setActiveTool = (name) => {
         p.tools.activeTool = name;
         const tool = p.tools.find(tool => tool.name === name);
         tool.activate();
     };
     p.tools.setActiveTool(p.tools.activeTool); // activate the tool
-} 
+}
 
 function setupGUI() {
+    // Pinch-to-zoom
+    if (p.DomEvent) {
+        // canvas.on('wheel', function (event) {
+        //     var e = event,
+        //         view = p.scope.view,
+        //         offset = canvas.offset(),
+        //         point = view.viewToProject(
+        //             p.DomEvent.getPoint(e).subtract(offset.left, offset.top)
+        //         ),
+        //         delta = e.deltaY || 0,
+        //         scale = 1 - delta / 100;
+        //     p.view.scale(scale, point); 
+        //     return false; 
+        // }); 
+        
+
+        //add event handler on mousewheel to canvas
+        canvas.addEventListener('wheel', function (event) {
+            var e = event,
+                view = p.view,
+                //offset = canvas.offset(),
+                point = p.view.viewToProject(
+                    p.DomEvent.getPoint(e).subtract(canvas.offsetLeft, canvas.offsetTop)
+                ),
+                delta = e.deltaY || 0,
+                scale = 1 - delta / 100;
+            view.scale(scale, point);
+            return false;
+        }); 
+
+
+    }
 
     const guiToolFolder = gui.addFolder('Tools');
     guiToolFolder.add(p.tools, 'activeTool', p.tools.map(t => t.name))
