@@ -3,8 +3,9 @@
 //const { project } = require("paper/dist/paper-core");
 
 window.onload = _ => {
-    paper.install(window);
-    paper.setup('canvas');
+    p=paper;
+    p.install(window);
+    p.setup('canvas');
     setupPaper();
     setupGUI();
     setupDrawingTools();
@@ -63,21 +64,21 @@ setupGUI = _ => {
         .name('Smooth Type')
     actionsFolder.add(params, 'smooth', -10., 10., 0.01)
         .onChange(_ => {
-            paper.project.selectedItems.forEach(item => {
+            p.project.selectedItems.forEach(item => {
                 item.smooth({ type: params.smoothType, factor: params.smooth });
             });
         }
         ).listen();
     actionsFolder.add(params, 'simplify').onChange(
         v => {
-            paper.project.selectedItems.forEach(item => {
+            p.project.selectedItems.forEach(item => {
                 item.simplify();
             });
         }
     );
     actionsFolder.add(params, 'flatten', 0, 100, 0.1).onChange(
         v => {
-            paper.project.selectedItems.forEach(item => {
+            p.project.selectedItems.forEach(item => {
                 item.flatten(params.flatten);
             });
         }
@@ -105,30 +106,30 @@ setupGUI = _ => {
     toolFolder.add(params, 'opacity2', 0., 1.).name('opacity2');
 
     layerFolder.add(params, 'clearLayer').name('clear').onChange(_ => {
-        paper.project.activeLayer.clear();
+        p.project.activeLayer.clear();
     });
 
-    //add a button to the gui to add a new layer
-    // layerFolder.add(params, 'addLayer').name('add layer').onChange(_ => {
-    //     var newLayer = new paper.Layer({
-    //         name: 'layer' + (layers.length),
-    //         visible: true,
-    //         opacity: 1,
-    //         locked: false,
-    //         color: '#ff0000'
-    //     });
+   // add a button to the gui to add a new layer
+    layerFolder.add(params, 'addLayer').name('add layer').onChange(_ => {
+        var newLayer = new paper.Layer({
+            name: 'layer' + (layers.length),
+            visible: true,
+            opacity: 1,
+            locked: false,
+            color: '#ff0000'
+        });
 
-    //     newLayer.activate();
-    //     // console.log(layers.map(l => l.name));
-    //     layerlist.remove();
-    //     layerlist = layerFolder.add(params, 'activeLayer',
-    //         layers.map(l => l.name)).name('layer')
-    //         .onChange(updateActiveLayer).listen();
-    // });
+        newLayer.activate();
+        // console.log(layers.map(l => l.name));
+        layerlist.remove();
+        layerlist = layerFolder.add(params, 'activeLayer',
+            layers.map(l => l.name)).name('layer')
+            .onChange(updateActiveLayer).listen();
+    });
 
     //update the dropdown menu choices with the names of the layers
     function updateLayerList(name) {
-        paper.project.activeLayer = layers.find(l => l.name == name);
+        p.project.activeLayer = layers.find(l => l.name == name);
         let l = layers.find(l => l.name === value);
         // console.log(value + " " + l.name + " " + paper.project.activeLayer.name);
     }
@@ -140,7 +141,7 @@ setupGUI = _ => {
     }
 
     const layerlist = layerFolder.add(params, 'activeLayer',
-        paper.project.layers.map(l => l.name)).
+        p.project.layers.map(l => l.name)).
         name('layer').onChange(updateActiveLayer).listen();
 
     //add checkbox for layer1 visibility
@@ -162,16 +163,16 @@ setupGUI = _ => {
 
 //on resize window rebuild the paper project
 window.onresize = _ => {
-    paper.view.viewSize = new paper.Size(window.innerWidth, window.innerHeight);
+    p.view.viewSize = new p.Size(window.innerWidth, window.innerHeight);
 };
 
 function setupPaper() {
     //clear the paper project
-    paper.project.clear();
+    p.project.clear();
 
-    layers = paper.project.layers;
+    layers = p.project.layers;
 
-    new paper.Layer({
+    new p.Layer({
         name: 'layer0',
         visible: true,
         opacity: 1,
@@ -179,14 +180,14 @@ function setupPaper() {
         color: 'none'
     });
 
-    new paper.Layer({
+    new p.Layer({
         name: 'layer1',
         visible: true,
         opacity: 1,
         locked: false,
         color: '#ffff00'
     });
-    new paper.Layer({
+    new p.Layer({
         name: 'layer2',
         visible: true,
         opacity: 1,
@@ -194,7 +195,7 @@ function setupPaper() {
         color: 'none'
     });
 
-    new paper.Layer({
+    new p.Layer({
         name: 'layer3',
         visible: true,
         opacity: 1,
@@ -208,34 +209,34 @@ function setupPaper() {
 function drawBackgroundGrid(n = 20, fgcolor = 'black', bgcolor = 'grey', fgopacity = 1, bgopacity = 1) {
     //draw a square n x n grid with thin black lines on the background layer
     //const n = 20;
-    const viewsize = paper.view.size;
-    const grid = new paper.Path.Rectangle({
+    const viewsize = p.view.size;
+    const grid = new p.Path.Rectangle({
         rectangle: [0, 0,
-            paper.view.size.width, paper.view.size.height],
+            p.view.size.width, p.view.size.height],
         fillColor: bgcolor,
         strokeColor: 'none',
         opacity: bgopacity
     }).sendToBack();
-    let aspect = paper.view.size.width / paper.view.size.height;
+    let aspect = p.view.size.width / p.view.size.height;
     aspect = 1;
     let gridstep = { x: n, y: n };
-    let nsteps = Math.max(paper.view.size.width, paper.view.size.height) /
+    let nsteps = Math.max(p.view.size.width, p.view.size.height) /
         Math.min(gridstep.x, gridstep.y);
 
     for (let i = 0; i < nsteps; i++) {
         let x = i * gridstep.x;
         let y = aspect * i * gridstep.y;
-        let line = new paper.Path.Line({
+        let line = new p.Path.Line({
             from: [x, 0],
-            to: [x, paper.view.size.height],
+            to: [x, p.view.size.height],
             strokeColor: fgcolor,
             opacity: fgopacity,
             strokeWidth: 1
         });
         // line.sendToFront();
-        let line2 = new paper.Path.Line({
+        let line2 = new p.Path.Line({
             from: [0, y],
-            to: [paper.view.size.width, y],
+            to: [p.view.size.width, y],
             strokeColor: fgcolor,
             opacity: fgopacity,
             strokeWidth: 1
@@ -256,7 +257,7 @@ var hitOptions = {
 
 function setupDrawingTools() {
     //create a new tool for drawing
-    var tool = new paper.Tool();
+    var tool = new p.Tool();
     tool.minDistance = 10;
     var toolPath;
     var mouseDownPoint = null;
@@ -276,20 +277,20 @@ function setupDrawingTools() {
             // clear the selection
             if (e.key == 'a' && e.modifiers.control) {
                 //clear the selection
-                paper.project.selectedItems.forEach(
+                p.project.selectedItems.forEach(
                     item => item.selected = false
                 );
             }
             // select all
             if (e.key == 'a' && e.modifiers.shift) {
                 //iterate for all items in the active layer
-                paper.project.activeLayer.children.forEach(
+                p.project.activeLayer.children.forEach(
                     item => item.fullySelected = true);
                 //paper.project.activeLayer.fullySelected = true;
             }
             // remove selected items
             if (['x', 'delete', 'backspace'].includes(e.key)) {
-                paper.project.selectedItems.forEach(e => {
+                p.project.selectedItems.forEach(e => {
                     e.remove();
                 });
             }
@@ -316,7 +317,7 @@ function setupDrawingTools() {
 
             // if (toolPath) toolPath.selected = false;
 
-            toolPath = new paper.Path();
+            toolPath = new p.Path();
             toolPath.strokeColor = params.fgcolor1;
             toolPath.fillColor = null;
             //set toolpath opacity to params.opacity1
@@ -334,7 +335,7 @@ function setupDrawingTools() {
                     e.item.selected = !e.item.selected;
                 } else {
                     //clear the selection
-                    paper.project.activeLayer.selected = false;
+                    p.project.activeLayer.selected = false;
                     //toolPath.selected = false;
                     e.item.selected = true;
 
@@ -348,12 +349,12 @@ function setupDrawingTools() {
                 selectionPath.opacity = 0.5;
                 selectionPath.selected = true;
                 selectionPath.closed = true;
-                paper.project.activeLayer.selected = false;
+                p.project.activeLayer.selected = false;
             }
 
         } else if (params.activeTool == 'edit') {
             segment=path=null;
-            var hitResult = paper.project.hitTest(e.point, hitOptions);
+            var hitResult = p.project.hitTest(e.point, hitOptions);
             if (!hitResult) {
 
                 return false;
@@ -381,7 +382,7 @@ function setupDrawingTools() {
             }
             movePath = hitResult.type == 'fill';
             if (movePath) {
-                paper.project.activeLayer.addChild(hitResult.item);
+                p.project.activeLayer.addChild(hitResult.item);
             }
         } else {
 
@@ -395,8 +396,8 @@ function setupDrawingTools() {
             toolPath.add(e.point);
         } else if (params.activeTool == 'select') {
             if (e.item) {
-                if (paper.Key.isDown('s')) {
-                    paper.project.selectedItems.forEach(
+                if (p.Key.isDown('s')) {
+                    p.project.selectedItems.forEach(
                         item => {
                             item.simplify();
                             //item.smooth({ type: 'continuous', factor: .9 });
@@ -458,7 +459,7 @@ function setupDrawingTools() {
         }
         if (params.activeTool == 'select') {
             if (e.item) {
-                paper.project.activeLayer.children.forEach(
+                p.project.activeLayer.children.forEach(
                     item => {
                         if (selectionPath.intersects(item)) {
                             //if (selectionPath.intersect(item) !=null) {
@@ -474,7 +475,7 @@ function setupDrawingTools() {
                 //select all items contained in the selection path
                 if (selectionPath.length > 1) {
                     // selectionPath.simplify();
-                    paper.project.activeLayer.children.forEach(
+                    p.project.activeLayer.children.forEach(
                         item => {
                             if (item.isInside(selectionPath.bounds)) {
                                 item.selected = true;

@@ -9,7 +9,7 @@
             "type": "pwa-chrome",
             "request": "launch",
             "name": "Launch Chrome against localhost",
-            "url": "http://localhost:5500/tests",
+            "url": "http://localhost:5500/tests/t08.html",
             "webRoot": "${workspaceFolder}"
         }
     ]

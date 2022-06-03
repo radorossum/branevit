@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>branevit editor</title>
     <script src="../lib/paper-full.min.js"></script>
-    <script src="../paperjs-layers-panel.js"></script>
+    <!-- <script src="https://sasensi.github.io/paperjs-layers-panel/build/paperjs-layers-panel.js"></script> -->
+    <script src="../lib/paperjs-layers-panel.js"></script>
     <script src="../lib/dat.gui.min.js"></script>
+
     <link rel="icon" href="../css/favicon.ico" type="image/x-icon" />
 
     <style>
-        
         * {
             margin: 0;
             padding: 0;
         }
-        body,html {
+
+        body,
+        html {
             height: 100%;
-            background-color: black;
+            background-color: rgb(120, 120, 120);
         }
 
         #canvas {
@@ -25,12 +29,23 @@
             width: 100%;
             height: 100%;
         }
+
+        /* stylize panel */
+        paperjs-layer-panel main {
+            position: fixed;
+            left: 15;
+            z-index: 3;
+            top: 15;
+        }
     </style>
 </head>
 
 <body>
-    <canvas id="canvas"></canvas>
-    <script src="t03.js"></script>
+    <canvas id="canvas" resize></canvas>
+
+    <script src="t08.js"></script>
+
+
 </body>
 
 </html>

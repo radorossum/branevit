@@ -1,7 +1,7 @@
 window.onload = () => {
     // Setup Paper
     p=paper;
-    paper.setup(document.querySelector('canvas'))
+    paper.setup(document.querySelector('canvas'));
       
     // Find a Tool in `paper.tools` and activate it
   
