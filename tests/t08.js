@@ -23,6 +23,36 @@ window.onresize = paper.onResize = _ => {
     console.log("resized to " + view.viewSize.width + "," + view.viewSize.height)
 }
 
+function setupInterface() {
+    // Actions
+    p.actionInterface = {
+    }
+
+    p.processInterface = {
+        smooth: _ => {
+            p.project.selectedItems
+                .forEach(v =>
+                    v.smooth({
+                        type: p.processInterface.smoothType,
+                        factor: p.processInterface.smoothness
+                    }));
+        },
+        smoothness: 0.,
+        smoothType: 'geometric',
+        simplify: _ => {
+            p.project.selectedItems.forEach(
+                v => v.simplify(p.processInterface.simplicity));
+        },
+        simplicity: 0.,
+        flatten: _ => {
+            p.project.selectedItems
+                .forEach(v => v.flatten(p.processInterface.flatness));
+        },
+        flatness: 0.5
+
+    }
+}
+
 function setupLayers() {
     let layer = p.project.activeLayer;
     layer.name = "Layer 0";
@@ -95,122 +125,6 @@ function setupTools() {
         let movePath = false;
         let mouseDownPoint = null;
 
-
-
-
-        tool.onMouseDown = e => {
-            selectedSegment = selectedPath = null;
-            mouseDownPoint = e.point.clone();
-
-            let hitResult = p.project.hitTest(e.point, hitOptions);
-            if (!hitResult && !e.modifiers) {
-                p.project.activeLayer.selected = false;
-                return;
-            }
-
-            if (e.modifiers.meta) {
-                p.project.activeLayer.selected = false;
-            }
-            if (e.modifiers.alt) {
-                if (hitResult) {
-                    if (hitResult.type == 'segment') {
-                        hitResult.segment.remove();
-                    } else if (hitResult.type == 'stroke') {
-                        hitResult.item.selected = false;
-
-                    } else if (hitResult.type == 'fill') {
-                        hitResult.item.selected = false;
-                    }
-                }
-                return;
-            }
-
-            if (hitResult) {
-                //hitResult.selected = true;
-
-                if (e.item) {
-                    // event.item.selected = true;
-                    hitResult.item.selected = true;
-                    // event.item.selected = !event.item.selected;
-                }
-
-                selectedPath = hitResult.item;
-                if (hitResult.type == 'segment') {
-                    selectedSegment = hitResult.segment;
-                } else if (hitResult.type == 'stroke') {
-                    var location = hitResult.location;
-                    if (e.modifiers.shift) {
-                        selectedSegment = selectedPath.insert(location.index + 1, e.point);
-                    }
-
-
-                    if (p.Key.isDown('`')) {
-                        // selectedPath.smooth(
-                        //     {from: (location.index-1) % selectedPath.segments.length, 
-                        //         to: (location.index + 2) % selectedPath.segments.length,
-                        //     type:paramProcess.smoothType,
-                        //     factor:paramProcess.smoothness});
-                        if (selectedSegment)
-                            selectedSegment.smooth();
-                    }
-                }
-            }
-            //  movePath = hitResult.type == 'fill';
-            if (hitResult && hitResult.type == 'fill') {
-                //project.activeLayer.addChild(hitResult.item);
-                // p.project.selectedItems.addChild(hitResult.item);
-            }
-        }
-
-        tool.onMouseDrag = e => {
-            if (selectedSegment) {
-                selectedSegment.point =
-                    selectedSegment.point.add(e.delta);
-                if (p.Key.isDown('`')) {
-                    // selectedPath.smooth(
-                    //     {from: (location.index-1) % selectedPath.segments.length, 
-                    //         to: (location.index + 2) % selectedPath.segments.length,
-                    //     type:paramProcess.smoothType,
-                    //     factor:paramProcess.smoothness});
-                    selectedSegment.smooth();
-                }
-                //selectedPath.smooth();
-            } else if (selectedPath) {
-                //selectedPath.position += event.delta;
-            }
-
-            if (p.Key.isDown('t')) {
-                p.project.selectedItems
-                    .forEach(i => i.position = i.position.add(e.delta));
-            }
-            if (p.Key.isDown('r')) {
-                p.project.selectedItems.forEach(
-                    item => {
-                        //item.rotation += event.delta.angle * 0.1;
-                        item.rotate(e.delta.angle * 0.025,
-                            p.Key.isDown('`') ? mouseDownPoint : item.position);
-                        //item.position += event.delta;
-                    }
-                );
-            }
-            //if 's' is down scale the selected items
-            if (p.Key.isDown('s')) {
-                p.project.selectedItems.forEach(
-                    function (item) {
-                        item.scale(1 + (e.delta.x - e.delta.y) * 0.01,
-                            p.Key.isDown('shift') ? mouseDownPoint : item.position);
-                    }
-                );
-            }
-
-        }
-
-
-    })();
-
-    // select tool
-    (_ => {
-        const tool = new p.Tool({ name: 'select' });
         tool.minDistance = 10;
 
         tool.selectionPath = new Path();
@@ -218,91 +132,170 @@ function setupTools() {
         tool.selectionPath.strokeWidth = 1;
         //dashed line for selection
         tool.selectionPath.dashArray = [5, 5];
-      
 
 
+        tool.onMouseDown = e => {
+            selectedSegment = selectedPath = null;
+            mouseDownPoint = e.point.clone();
+            if (p.Key.isDown('q')) {
+                tool.selectionPath.remove();
+                tool.selectionPath = new Path();
+                tool.selectionPath.strokeColor = 'red';
+                tool.selectionPath.strokeWidth = 1;
+                tool.selectionPath.dashArray = [5, 5];
+                tool.selectionPath.add(e.point);
+                // console.log('mouse down' + event.point.x + " " + event.point.y);
 
+            } else {
+                let hitResult = p.project.hitTest(e.point, hitOptions);
+                if (!hitResult && !e.modifiers) {
+                    p.project.activeLayer.selected = false;
+                    return;
+                }
 
+                if (e.modifiers.meta) {
+                    p.project.activeLayer.selected = false;
+                }
 
-        tool.onMouseDown = function (e) {
-            tool.selectionPath.remove();
-            tool.selectionPath = new Path();
-            tool.selectionPath.strokeColor = 'red';
-            tool.selectionPath.strokeWidth = 1;
-            tool.selectionPath.dashArray = [5, 5];
-            tool.selectionPath.add(e.point);
-            // console.log('mouse down' + event.point.x + " " + event.point.y);
+                if (e.modifiers.alt) {
+                    if (hitResult) {
+                        if (hitResult.type == 'segment') {
+                            hitResult.segment.remove();
+                        } else if (hitResult.type == 'stroke') {
+                            hitResult.item.selected = false;
 
+                        } else if (hitResult.type == 'fill') {
+                            hitResult.item.selected = false;
+                        }
+                    }
+                    return;
+                }
+
+                if (hitResult) {
+                    //hitResult.selected = true;
+
+                    if (e.item) {
+                        // event.item.selected = true;
+                        hitResult.item.selected = true;
+                        // event.item.selected = !event.item.selected;
+                    }
+
+                    selectedPath = hitResult.item;
+                    if (hitResult.type == 'segment') {
+                        selectedSegment = hitResult.segment;
+                    } else if (hitResult.type == 'stroke') {
+                        var location = hitResult.location;
+                        if (e.modifiers.shift) {
+                            selectedSegment = selectedPath.insert(location.index + 1, e.point);
+                        }
+
+                        if (p.Key.isDown('`')) {
+                            // selectedPath.smooth(
+                            //     {from: (location.index-1) % selectedPath.segments.length, 
+                            //         to: (location.index + 2) % selectedPath.segments.length,
+                            //     type:paramProcess.smoothType,
+                            //     factor:paramProcess.smoothness});
+                            if (selectedSegment)
+                                selectedSegment.smooth();
+                        }
+                    }
+                }
+                //  movePath = hitResult.type == 'fill';
+                if (hitResult && hitResult.type == 'fill') {
+                    //project.activeLayer.addChild(hitResult.item);
+                    // p.project.selectedItems.addChild(hitResult.item);
+                }
+            }
+        }
+
+        tool.onMouseDrag = e => {
+            if (p.Key.isDown('q')) {
+                tool.selectionPath.add(e.point);
+            } else {
+                if (selectedSegment) {
+                    selectedSegment.point =
+                        selectedSegment.point.add(e.delta);
+                    if (p.Key.isDown('`')) {
+                        // selectedPath.smooth(
+                        //     {from: (location.index-1) % selectedPath.segments.length, 
+                        //         to: (location.index + 2) % selectedPath.segments.length,
+                        //     type:paramProcess.smoothType,
+                        //     factor:paramProcess.smoothness});
+                        selectedSegment.smooth();
+                    }
+                    //selectedPath.smooth();
+                } else if (selectedPath) {
+                    //selectedPath.position += event.delta;
+                }
+
+                if (p.Key.isDown('t')) {
+                    p.project.selectedItems
+                        .forEach(i => i.position = i.position.add(e.delta));
+                }
+                if (p.Key.isDown('r')) {
+                    p.project.selectedItems.forEach(
+                        item => {
+                            //item.rotation += event.delta.angle * 0.1;
+                            item.rotate(e.delta.angle * 0.025,
+                                p.Key.isDown('`') ? mouseDownPoint : item.position);
+                            //item.position += event.delta;
+                        }
+                    );
+                }
+                //if 's' is down scale the selected items
+                if (p.Key.isDown('s')) {
+                    p.project.selectedItems.forEach(
+                        function (item) {
+                            item.scale(1 + (e.delta.x - e.delta.y) * 0.01,
+                                p.Key.isDown('shift') ? mouseDownPoint : item.position);
+                        }
+                    );
+                }
+            }
 
         }
 
-        tool.onMouseDrag = function (e) {
-            tool.selectionPath.add(e.point);
-        }
-
-        tool.onMouseUp = function (e) {
-
-            // if (e.item) {
-            //     p.project.activeLayer.children.forEach(
-            //         item => {
-            //             if (tool.selectionPath.intersects(item)) {
-            //                 //if (selectionPath.intersect(item) !=null) {
-            //                 //item.selected = true;
-            //                 item.selected = !item.selected;
-            //             }
-            //         }
-            //     );
-            //     tool.selectionPath.remove();
-            // } else {
-            if (e.item) {
+        tool.onMouseUp = e => {
+            if (p.Key.isDown('q')) {
+                // if (e.item) {
                 tool.selectionPath.add(e.point);
                 tool.selectionPath.smooth();
                 tool.selectionPath.closed = true;
                 tool.selectionPath.simplify();
 
-                let selected = p.project.activeLayer.children.filter(c => c.bounds.intersects(tool.selectionPath.bounds));
-                selected.forEach(c => c.selected = true);
-                if (selected == null) {
-                    //clear selection
-                    //p.project.activeLayer.children.forEach(c => c.selected = false);
-                    p.project.selectedItems.forEach(i => i.selected = false);
-                }
-                tool.selectionPath.remove();
+                // let selected = p.project.activeLayer.children.filter(c => c.bounds.intersects(tool.selectionPath.bounds));
+                // selected.forEach(c => c.selected = true);
+                // if (selected == null) {
+                //     //clear selection
+                //     //p.project.activeLayer.children.forEach(c => c.selected = false);
+                //     p.project.selectedItems.forEach(i => i.selected = false);
+                // }
+
+                p.project.activeLayer.children.forEach(c => {
+                    let selected = false;
+                    c.segments.forEach(s => {
+                        selected = selected || tool.selectionPath.contains(s.point);
+                        if (selected) {
+                            s.selected = true;
+                            return;
+                        }
+                    });
+                });
+                // if (selected) {
+                //     p.project.selectedItems.forEach(i => i.selected = true);
+                // }
+
                 //}
-            } else {
-                p.project.selectedItems.forEach(i => i.selected = false);
-                tool.selectionPath.remove();
-            }
+                //  } else {
+                //     p.project.selectedItems.forEach(i => i.selected = false);
 
-
+            }//
+            tool.selectionPath.remove();
         }
 
-        // tool.onKeyDown = function (e) {
-        //     if (e.key == 'delete' || e.key == 'backspace') {
-        //         if (e.modifiers.shift) {
-        //             p.project.selectedItems.forEach(i => i.remove());
-        //         } else {
-        //             p.project.activeLayer.children.forEach(i => i.selected ? i.remove() : null);
-        //         }
-        //     }
-        // }
 
-    })();
 
-    // pan view tool
-    (_ => {
-        const tool = new p.Tool({ name: 'pan' });
-        let oldPointViewCoords;
 
-        tool.onMouseDown = e => {
-            oldPointViewCoords = p.view.projectToView(e.point);
-        }
-
-        tool.onMouseDrag = e => {
-            const delta = e.point.subtract(p.view.viewToProject(oldPointViewCoords));
-            oldPointViewCoords = p.view.projectToView(e.point);
-            p.view.translate(delta);
-        }
     })();
 
     // pencil draw tool
@@ -339,6 +332,105 @@ function setupTools() {
             }
             // toolPath.removeOnDrag();
             path = null;
+        }
+    })();
+
+    // // select tool
+    // (_ => {
+    //     const tool = new p.Tool({ name: 'select' });
+    //     tool.minDistance = 10;
+
+    //     tool.selectionPath = new Path();
+    //     tool.selectionPath.strokeColor = 'red';
+    //     tool.selectionPath.strokeWidth = 1;
+    //     //dashed line for selection
+    //     tool.selectionPath.dashArray = [5, 5];
+
+
+
+
+
+
+    //     tool.onMouseDown = function (e) {
+    //         tool.selectionPath.remove();
+    //         tool.selectionPath = new Path();
+    //         tool.selectionPath.strokeColor = 'red';
+    //         tool.selectionPath.strokeWidth = 1;
+    //         tool.selectionPath.dashArray = [5, 5];
+    //         tool.selectionPath.add(e.point);
+    //         // console.log('mouse down' + event.point.x + " " + event.point.y);
+
+
+    //     }
+
+    //     tool.onMouseDrag = function (e) {
+    //         tool.selectionPath.add(e.point);
+    //     }
+
+    //     tool.onMouseUp = function (e) {
+
+    //         // if (e.item) {
+    //         //     p.project.activeLayer.children.forEach(
+    //         //         item => {
+    //         //             if (tool.selectionPath.intersects(item)) {
+    //         //                 //if (selectionPath.intersect(item) !=null) {
+    //         //                 //item.selected = true;
+    //         //                 item.selected = !item.selected;
+    //         //             }
+    //         //         }
+    //         //     );
+    //         //     tool.selectionPath.remove();
+    //         // } else {
+    //         if (e.item) {
+    //             tool.selectionPath.add(e.point);
+    //             tool.selectionPath.smooth();
+    //             tool.selectionPath.closed = true;
+    //             tool.selectionPath.simplify();
+
+    //             let selected = p.project.activeLayer.children.filter(c => c.bounds.intersects(tool.selectionPath.bounds));
+    //             selected.forEach(c => c.selected = true);
+    //             if (selected == null) {
+    //                 //clear selection
+    //                 //p.project.activeLayer.children.forEach(c => c.selected = false);
+    //                 p.project.selectedItems.forEach(i => i.selected = false);
+    //             }
+    //             tool.selectionPath.remove();
+    //             //}
+    //         } else {
+    //             p.project.selectedItems.forEach(i => i.selected = false);
+    //             tool.selectionPath.remove();
+    //         }
+
+
+    //     }
+
+    //     // tool.onKeyDown = function (e) {
+    //     //     if (e.key == 'delete' || e.key == 'backspace') {
+    //     //         if (e.modifiers.shift) {
+    //     //             p.project.selectedItems.forEach(i => i.remove());
+    //     //         } else {
+    //     //             p.project.activeLayer.children.forEach(i => i.selected ? i.remove() : null);
+    //     //         }
+    //     //     }
+    //     // }
+
+    // })();
+
+
+    ///////////////////
+    // pan view tool
+    (_ => {
+        const tool = new p.Tool({ name: 'pan' });
+        let oldPointViewCoords;
+
+        tool.onMouseDown = e => {
+            oldPointViewCoords = p.view.projectToView(e.point);
+        }
+
+        tool.onMouseDrag = e => {
+            const delta = e.point.subtract(p.view.viewToProject(oldPointViewCoords));
+            oldPointViewCoords = p.view.projectToView(e.point);
+            p.view.translate(delta);
         }
     })();
 
@@ -419,40 +511,61 @@ function setupGUI() {
         });
 
         //add event handler for escape key
-        document.addEventListener('keydown', function (event) {
-            if (event.keyCode === 27) {
+        document.addEventListener('keydown', e => {
+            if (e.keyCode === 27) {
                 //p.view.scale(1);
                 //fit the view to the window
                 //p.view.fit(p.project.activeLayer.bounds);
                 console.log('escape key pressed');
                 //if the shift key is pressed
-                if (event.shiftKey) {
+                if (e.shiftKey) {
                     p.project.activeLayer.children.forEach(c => {
                         c.selected = !c.selected;
                     });
                 } else {
                     p.project.selectedItems.forEach(i => i.selected = false);
-                   // p.project.selectedItems.for = [];
+                    // p.project.selectedItems.for = [];
 
                 }
             }
             // on delete or backspace key press
-            if (event.keyCode === 8 || event.keyCode === 46) {
+            if (e.keyCode === 8 || e.keyCode === 46) {
                 p.project.selectedItems.forEach(i => i.remove());
             }
 
             // on cmd+down arrow key press
-            if (event.keyCode === 40 && event.metaKey) {
+            if (e.keyCode === 40 && e.metaKey) {
                 //move the selected items to the back
                 p.project.selectedItems.forEach(i => i.sendToBack());
             }
             // on cmd+up arrow key press move selected items to the front
-            if (event.keyCode === 38 && event.metaKey) {
+            if (e.keyCode === 38 && e.metaKey) {
                 p.project.selectedItems.forEach(i => i.bringToFront());
             }
+            if (e.keyCode === 9) {
+                e.preventDefault();
+                //get the next tool in the array
 
+
+                let index = p.tools.map(t => t.name).indexOf(p.tools.activeTool);
+                let nextIndex = (p.tools.length + index + (e.shiftKey ? -1 : 1)) % p.tools.length;
+                // const nextIndex = Math.max(((p.tools.length+index + e.shiftKey?-1:1) % p.tools.length),0);
+                // const nextTool = p.tools[nextIndex];
+
+                //set the first tool as the active tool
+
+                p.tools.lastTool = p.tools.activeTool;
+                p.tools.activeTool = p.tools[nextIndex].name;
+                p.tools.setActiveTool(p.tools.activeTool);
+
+            }
 
         });
+
+
+
+
+
 
     }
 
@@ -596,25 +709,9 @@ function setupGUI() {
     //     });
     guiLayerFolder.open();
 
-    const guiActionsFolder = gui.addFolder('Actions');
-    guiActionsFolder.add({
-        svgDownload:
-            _ => {
-                let svg = p.project.exportSVG({ asString: true });
-                //  let svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-                let a = document.createElement('a');
-                a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
-                let timestamp = new Date().toJSON().replace(/[-:]/g, '')
-                let parts = timestamp.match(/^20(.*)T(.*)\.\d*Z$/); // remove timezone
-                a.download = `Export_${parts[1]}_${parts[2]}.svg`;
-                let body = document.body;
-                body.appendChild(a);
-                a.click();
-                body.removeChild(a);
-            }
-    }, 'svgDownload').name('download SVG');
+    const guiIOFolder = gui.addFolder('Import/Export');
 
-    guiActionsFolder.add({
+    guiIOFolder.add({
         svgUpload:
             _ => {
                 let input = document.createElement('input');
@@ -634,7 +731,7 @@ function setupGUI() {
     }, 'svgUpload').name('import SVG');
 
     // image upload action
-    guiActionsFolder.add({
+    guiIOFolder.add({
         imageUpload:
             _ => {
                 let input = document.createElement('input');
@@ -658,26 +755,9 @@ function setupGUI() {
     }, 'imageUpload').name('import image');
 
 
-    // download json
-    guiActionsFolder.add({
-        jsonDownload:
-            _ => {
-                let json = p.project.exportJSON();
-                let jsonBlob = new Blob([json], { type: "application/json;charset=utf-8" });
-                let a = document.createElement('a');
-                a.href = URL.createObjectURL(jsonBlob);
-                let timestamp = new Date().toJSON().replace(/[-:]/g, '')
-                let parts = timestamp.match(/^20(.*)T(.*)\.\d*Z$/); // remove timezone
-                a.download = `Export_${parts[1]}_${parts[2]}.json`;
-                let body = document.body;
-                body.appendChild(a);
-                a.click();
-                body.removeChild(a);
-            }
-    }, 'jsonDownload').name('download JSON');
 
     //import json
-    guiActionsFolder.add({
+    guiIOFolder.add({
         jsonUpload:
             _ => {
                 let input = document.createElement('input');
@@ -696,12 +776,69 @@ function setupGUI() {
             }
     }, 'jsonUpload').name('import JSON');
 
+    // download json
+    guiIOFolder.add({
+        jsonDownload:
+            _ => {
+                let json = p.project.exportJSON();
+                let jsonBlob = new Blob([json], { type: "application/json;charset=utf-8" });
+                let a = document.createElement('a');
+                a.href = URL.createObjectURL(jsonBlob);
+                let timestamp = new Date().toJSON().replace(/[-:]/g, '')
+                let parts = timestamp.match(/^20(.*)T(.*)\.\d*Z$/); // remove timezone
+                a.download = `Export_${parts[1]}_${parts[2]}.json`;
+                let body = document.body;
+                body.appendChild(a);
+                a.click();
+                body.removeChild(a);
+            }
+    }, 'jsonDownload').name('download JSON');
 
+    guiIOFolder.add({
+        svgDownload:
+            _ => {
+                let svg = p.project.exportSVG({ asString: true });
+                //  let svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+                let a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+                let timestamp = new Date().toJSON().replace(/[-:]/g, '')
+                let parts = timestamp.match(/^20(.*)T(.*)\.\d*Z$/); // remove timezone
+                a.download = `Export_${parts[1]}_${parts[2]}.svg`;
+                let body = document.body;
+                body.appendChild(a);
+                a.click();
+                body.removeChild(a);
+            }
+    }, 'svgDownload').name('download SVG');
 
-    // $('.button.canvas-export-json', element).click(function() {
-    // 			var svg = scope.project.exportJSON();
-    // 			this.href = getBlobURL(svg, 'text/json');
-    // 			this.download = 'Export_' + getTimeStamp() + '.json';
-    // 		});
+    guiIOFolder.add({
+        pngDownload:
+            _ => {
+                let timestamp = new Date().toJSON().replace(/[-:]/g, '')
+                let parts = timestamp.match(/^20(.*)T(.*)\.\d*Z$/); // remove timezone
+                let a = document.createElement('a');
+                //rasterize the view to a png blob
+                p.view.draw();
+                let png = p.view.rasterize();
+                a.href = URL.createObjectURL(png);
 
+                let blob;
+                
+                // p.view.element.toBlob(function (blob) { saveAs(blob, "image.png"); });
+                // a.href = p.project.exportImage({
+                //     type: 'png',
+                //     width: p.project.view.size.width,
+                //     height: p.project.view.size.height,
+                //     quality: 1,
+                //     transparent: true
+                // });
+                a.download = `Export_${parts[1]}_${parts[2]}.png`;
+                let body = document.body;
+                body.appendChild(a);
+                a.click();
+                body.removeChild(a);
+            }
+    }, 'pngDownload').name('download PNG');
+
+    gui.addFolder('Process').open();
 }
