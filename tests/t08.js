@@ -18,7 +18,6 @@ window.onload = _ => {
 
 }
 
-
 window.onresize = paper.onResize = _ => {
     paper.view.viewSize = new Size(window.innerWidth, window.innerHeight);
     console.log("resized to " + view.viewSize.width + "," + view.viewSize.height)
@@ -97,28 +96,7 @@ function setupTools() {
         let mouseDownPoint = null;
 
 
-        tool.onKeyDown = e => {
-            // if (e.key == 'escape') {
-            //     if (e.modifiers.shift) {
-            //         p.project.activeLayer.children.forEach(c => {
-            //             c.selected = !c.selected;
-            //         });
-            //         return;
-            //     }
-            //     if (e.modifiers.control) {
-            //         p.project.activeLayer.selected = false;
-            //         return;
-            //     }
-            //     p.project.selectedItems.forEach(c => {
-            //         c.selected = false;
-            //     });
 
-            // }
-
-            // if (e.key == 'delete' || e.key == 'backspace') {
-            //     p.project.selectedItems.forEach(v => v.remove());
-            // }
-        }
 
         tool.onMouseDown = e => {
             selectedSegment = selectedPath = null;
@@ -134,13 +112,15 @@ function setupTools() {
                 p.project.activeLayer.selected = false;
             }
             if (e.modifiers.alt) {
-                if (hitResult.type == 'segment') {
-                    hitResult.segment.remove();
-                } else if (hitResult.type == 'stroke') {
-                    hitResult.item.selected = false;
+                if (hitResult) {
+                    if (hitResult.type == 'segment') {
+                        hitResult.segment.remove();
+                    } else if (hitResult.type == 'stroke') {
+                        hitResult.item.selected = false;
 
-                } else if (hitResult.type == 'fill') {
-                    hitResult.item.selected = false;
+                    } else if (hitResult.type == 'fill') {
+                        hitResult.item.selected = false;
+                    }
                 }
                 return;
             }
@@ -182,7 +162,7 @@ function setupTools() {
             }
         }
 
-        tool.onMouseDrag = function (e) {
+        tool.onMouseDrag = e => {
             if (selectedSegment) {
                 selectedSegment.point =
                     selectedSegment.point.add(e.delta);
@@ -200,18 +180,15 @@ function setupTools() {
             }
 
             if (p.Key.isDown('t')) {
-                p.project.selectedItems.forEach(
-                    function (item) {
-                        item.position = item.position.add(e.delta);
-                    }
-                );
+                p.project.selectedItems
+                    .forEach(i => i.position = i.position.add(e.delta));
             }
             if (p.Key.isDown('r')) {
                 p.project.selectedItems.forEach(
-                    function (item) {
+                    item => {
                         //item.rotation += event.delta.angle * 0.1;
-                        item.rotate(e.delta.angle * 0.1,
-                            p.Key.isDown('shift') ? mouseDownPoint : item.position);
+                        item.rotate(e.delta.angle * 0.025,
+                            p.Key.isDown('`') ? mouseDownPoint : item.position);
                         //item.position += event.delta;
                     }
                 );
@@ -239,12 +216,20 @@ function setupTools() {
         tool.selectionPath = new Path();
         tool.selectionPath.strokeColor = 'red';
         tool.selectionPath.strokeWidth = 1;
+        //dashed line for selection
+        tool.selectionPath.dashArray = [5, 5];
+      
+
+
+
+
 
         tool.onMouseDown = function (e) {
             tool.selectionPath.remove();
             tool.selectionPath = new Path();
             tool.selectionPath.strokeColor = 'red';
             tool.selectionPath.strokeWidth = 1;
+            tool.selectionPath.dashArray = [5, 5];
             tool.selectionPath.add(e.point);
             // console.log('mouse down' + event.point.x + " " + event.point.y);
 
@@ -292,15 +277,15 @@ function setupTools() {
 
         }
 
-        tool.onKeyDown = function (e) {
-            if (e.key == 'delete' || e.key == 'backspace') {
-                if (e.modifiers.shift) {
-                    p.project.selectedItems.forEach(i => i.remove());
-                } else {
-                    p.project.activeLayer.children.forEach(i => i.selected ? i.remove() : null);
-                }
-            }
-        }
+        // tool.onKeyDown = function (e) {
+        //     if (e.key == 'delete' || e.key == 'backspace') {
+        //         if (e.modifiers.shift) {
+        //             p.project.selectedItems.forEach(i => i.remove());
+        //         } else {
+        //             p.project.activeLayer.children.forEach(i => i.selected ? i.remove() : null);
+        //         }
+        //     }
+        // }
 
     })();
 
@@ -392,7 +377,9 @@ function setupTools() {
 
 
     p.tools.activeTool = 'pencil';
+    p.tools.lastTool = 'select';
     p.tools.setActiveTool = (name) => {
+        p.tools.lastTool = p.tools.activeTool;
         p.tools.activeTool = name;
         const tool = p.tools.find(tool => tool.name === name);
         tool.activate();
@@ -438,10 +425,16 @@ function setupGUI() {
                 //fit the view to the window
                 //p.view.fit(p.project.activeLayer.bounds);
                 console.log('escape key pressed');
+                //if the shift key is pressed
+                if (event.shiftKey) {
+                    p.project.activeLayer.children.forEach(c => {
+                        c.selected = !c.selected;
+                    });
+                } else {
+                    p.project.selectedItems.forEach(i => i.selected = false);
+                   // p.project.selectedItems.for = [];
 
-                p.project.activeLayer.children.forEach(c => {
-                    c.selected = !c.selected;
-                });
+                }
             }
             // on delete or backspace key press
             if (event.keyCode === 8 || event.keyCode === 46) {
@@ -480,7 +473,7 @@ function setupGUI() {
                 //var svg = new p.SVG(e.target.result);
                 // import the SVG into the current project
                 p.project.importSVG(svg);
-               // svg.position = p.view.center;
+                // svg.position = p.view.center;
                 //svg.scale(0.5);
             }
             reader.readAsText(file);
@@ -525,13 +518,12 @@ function setupGUI() {
         .name('active tool')
         .onChange(_ => p.tools.setActiveTool(_)).listen();
 
-
     guiToolFolder.open();
 
     const guiLayerFolder = gui.addFolder('Layers');
     //add button to add a new layer
 
-    let updateName = (name) => {
+    let guiUpdateLayerName = (name) => {
         let l = p.project.layers.find(l => l.name === name);
         l.activate();
         p.project.layerInterface.name = p.project.activeLayer.name;
@@ -543,25 +535,25 @@ function setupGUI() {
         console.log(p.project.activeLayer.name);
     }
 
-
-    let updateList =
+    let guiUpdateLayerList =
         _ => {
             guiCurrentLayer.remove();
             let layerNames = p.project.layers.map(l => l.name).reverse();
             guiCurrentLayer = guiLayerFolder.add(p.project.layerInterface, 'current',
-                layerNames).onChange(updateName).listen();
+                layerNames).onChange(guiUpdateLayerName).listen();
 
             p.project.layerInterface.current = p.project.activeLayer.name;
+            guiUpdateLayerName(p.project.layerInterface.current);
             //guiLayerBlendMode.setValue(p.project.activeLayer.blendMode);
             // guiLayerBlendMode.updateDisplay();
             // console.log(p.project.activeLayer.name);
 
 
         };
-    guiLayerFolder.add(p.project.layerInterface, 'add').onFinishChange(updateList);
-    guiLayerFolder.add(p.project.layerInterface, 'remove').onFinishChange(updateList);
-    guiLayerFolder.add(p.project.layerInterface, 'moveUp').onFinishChange(updateList);
-    guiLayerFolder.add(p.project.layerInterface, 'moveDown').onFinishChange(updateList);
+    guiLayerFolder.add(p.project.layerInterface, 'add').onFinishChange(guiUpdateLayerList);
+    guiLayerFolder.add(p.project.layerInterface, 'remove').onFinishChange(guiUpdateLayerList);
+    guiLayerFolder.add(p.project.layerInterface, 'moveUp').onFinishChange(guiUpdateLayerList);
+    guiLayerFolder.add(p.project.layerInterface, 'moveDown').onFinishChange(guiUpdateLayerList);
     let guiLayerName = guiLayerFolder.add(p.project.layerInterface, 'name')
         .onChange(_ => {
             p.project.layerInterface.current = _;
@@ -591,7 +583,7 @@ function setupGUI() {
 
     let guiCurrentLayer = guiLayerFolder.add(p.project.layerInterface, 'current',
 
-        p.project.layers.map(l => l.name)).onFinishChange(updateName).listen();
+        p.project.layers.map(l => l.name)).onFinishChange(guiUpdateLayerName).listen();
 
     p.project.layerInterface.current = p.project.activeLayer.name;
     p.project.layerInterface.name = p.project.activeLayer.name;
