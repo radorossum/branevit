@@ -119,13 +119,13 @@ function setupInterface() {
 
                 if (to.segments.length == from.segments.length) {
                     tmp.interpolate(from, to, p.processInterface.interpolation);
-                    let c1 =to.strokeColor.multiply(p.processInterface.interpolation);
-                    let c2 = from.strokeColor.multiply(1.-p.processInterface.interpolation);
+                    let c1 = to.strokeColor.multiply(p.processInterface.interpolation);
+                    let c2 = from.strokeColor.multiply(1. - p.processInterface.interpolation);
                     tmp.strokeColor = c1.add(c2);
                     // tmp.strokeColor = p.Color(to.strokeColor).multiply(p.processInterface.interpolation).add(
                     //     p.Color(from.strokeColor).multiply(1 - p.processInterface.interpolation));
                     // tmp.fillColor = tmp.strokeColor;
-                    console.log(c1+ " "+c2+" "+tmp.strokeColor);
+                    console.log(c1 + " " + c2 + " " + tmp.strokeColor);
                 }
                 if (p.Key.isDown('alt')) {
                     to.remove();
@@ -636,7 +636,52 @@ function setupGUI() {
                     p.project.activeLayer.children.forEach(c => {
                         c.selected = !c.selected;
                     });
-                } else {
+                } else if (e.ctrlKey) {
+
+                    console.log(p.view);
+
+                    let x=p.view.bounds.x;
+                    let y=p.view.bounds.y;
+                    p.view.zoom = 1.;
+                    p.view.translate(x,y);
+                     x=p.view.bounds.x;
+                     y=p.view.bounds.y;
+                   // p.view.zoom = 1.;
+                     p.view.translate(x,y);
+
+                    // let allLayers = new p.Layer();
+                    // allLayers.name = 'allLayers';
+                    // let merge = new p.Group({ name: 'merge' });
+                    // console.log('control key pressed');
+                    // for (let i = p.project.layers.length -1; i >= 0; i--) {
+                    //     if (p.project.layers[i].name != 'allLayers') {
+                    //         allLayers.addChild(p.project.layers[i]);
+                    //     }
+                    // }
+                    // console.log(allLayers.parent);
+                    // console.log(merge.parent);
+                    // p.project.layers.forEach(l => {
+                    //     console.log(l.name);
+                    //     if (l.name != "merge") allLayers.addChild(l)
+                    // }); 
+                    // allLayers.parent.addChild(allLayers.removeChildren());
+                    // allLayers.remove();
+                    // allLayers.fitBounds(p.view.bounds);
+                    // p.view.insertChildren(allLayers.index, allLayers.removeChildren());
+                    // allLayers.remove(); 
+                    // move the children of allLayers to the top
+                    // allLayers.children.forEach(c => {
+                    //     if (c.name != 'merge') {
+                    //     c.parent = merge
+                    //     }
+                    // });
+
+
+
+
+                }
+                else {
+
                     p.project.selectedItems.forEach(i => i.selected = false);
                     // p.project.selectedItems.for = [];
 
