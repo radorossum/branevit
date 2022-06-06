@@ -679,6 +679,12 @@ function setupGUI() {
 
 
 
+                } if (e.metaKey) {
+                    p.project.layers.forEach(l=>l.selected=true);
+                    p.project.activeLayer.selected = false;
+                    p.project.activeLayer.children.forEach(c => {
+                        c.selected = true;
+                    });
                 }
                 else {
 
