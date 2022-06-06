@@ -17,7 +17,7 @@ window.onload = _ => {
     setupInterface();
     setupGUI();
 
-} 
+}
 
 window.onresize = paper.onResize = _ => {
     paper.view.viewSize = new Size(window.innerWidth, window.innerHeight);
@@ -30,14 +30,18 @@ function setupInterface() {
     }
 
     p.processInterface = {
-        smooth: _=> {
+        smooth: _ => {
             p.project.selectedItems
-                .forEach(function(v) {
-                    v.smooth({
-                        type: p.processInterface.smoothType,
-                        factor: p.processInterface.smoothness
-                    })});
-        }, 
+                .forEach(function (v) {
+                    // if v is a path or compound path
+                    if (v instanceof p.Path) {
+                        v.smooth({
+                            type: p.processInterface.smoothType,
+                            factor: p.processInterface.smoothness
+                        })
+                    }
+                });
+        },
         smoothness: 0.,
         smoothType: 'geometric',
         simplify: _ => {
@@ -50,22 +54,34 @@ function setupInterface() {
                 .forEach(v => v.flatten(p.processInterface.flatness));
         },
         flatness: 0.5,
-        resample: function(n) {
+        resample: function (n) {
+            n = n || p.processInterface.samples;
             p.project.selectedItems
-                .forEach(p => {
-                    newSegments = [];
-                    for(let i=0;i<n;i++) {
-                        let s = new p.getPointAt(p.length*i/n);
-                        newSegments.push(s);
+                .forEach(path => {
+                    // if p is a path, resample it
+                    if (path instanceof p.Path) {
+                        newSegments = [];
+                        for (let i = 0; i < n; i++) {
+                            let s = path.getPointAt(path.length * i / n);
+                            newSegments.push(s);
+                        }
+                        
+                        // console.log(newSegments);
+                        
+                        let newpath = new p.Path({ segments: newSegments });
+                        newpath.strokeColor = p.Color.random();
+                        newpath.fillColor = p.Color.random();
+                        newpath.closed = path.closed;
+                        newpath.selected = true;
+                        path.remove();
+                        newpath.smooth();
                     }
-                    p.remove();
-                    console.log(s);
-                    p = new p.Path(newSegments);
-                    
+
 
                 });
+            
         },
-        samples:10
+        samples: 10
     }
 }
 
@@ -141,7 +157,7 @@ function setupTools() {
         let movePath = false;
         let mouseDownPoint = null;
 
-     //   tool.minDistance = 10;
+        //   tool.minDistance = 10;
 
         tool.selectionPath = new Path();
         tool.selectionPath.strokeColor = 'red';
@@ -729,9 +745,9 @@ function setupGUI() {
     guiProcess.add(p.processInterface, 'simplify');
     guiProcess.add(p.processInterface, 'simplicity', 0., 100., 0.01);
     guiProcess.add(p.processInterface, 'resample');
-    guiProcess.add(p.processInterface, 'samples', 1,1000,1);
+    guiProcess.add(p.processInterface, 'samples', 1, 1000, 1);
 
-  
+
 
     const guiIOFolder = gui.addFolder('Import/Export');
 
@@ -843,10 +859,10 @@ function setupGUI() {
                 let a = document.createElement('a');
                 //rasterize the view to a png blob
                 //p.view.draw();
-                a.href =  canvas.toDataURL('image/png');;
+                a.href = canvas.toDataURL('image/png');;
 
                 let blob;
-                
+
                 // p.view.element.toBlob(function (blob) { saveAs(blob, "image.png"); });
                 // a.href = p.project.exportImage({
                 //     type: 'png',
@@ -863,5 +879,5 @@ function setupGUI() {
             }
     }, 'pngDownload').name('download PNG');
 
-    
+
 }
