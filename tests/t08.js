@@ -61,7 +61,7 @@ function setupInterface() {
                     // if p is a path, resample it
                     if (path instanceof p.Path) {
                         newSegments = [];
-                        for (let i = 0; i < n; i++) {
+                        for (let i = 0; i <= n; i++) {
                             let s = path.getPointAt(path.length * i / n);
                             newSegments.push(s);
                         }
@@ -69,11 +69,13 @@ function setupInterface() {
                         // console.log(newSegments);
 
                         let newpath = new p.Path({ segments: newSegments });
-                        newpath.strokeColor = p.Color.random();
+                        newpath.strokeColor = path.strokeColor;//.random();
                         // newpath.fillColor = p.Color.random();
                         newpath.closed = path.closed;
                         newpath.selected = true;
-                        //path.remove();
+                        if (p.Key.isDown('alt')) {
+                            path.remove();
+                        }
                         path.selected = false;
                         newpath.smooth();
                     }
@@ -98,14 +100,51 @@ function setupInterface() {
             });
         },
         interpolate: _ => {
-            if (p.project.selectedItems.length > 1) {
-                let to = p.project.selectedItems[0];
-                let from = p.project.selectedItems[p.project.selectedItems.length - 1];
+            // if (p.project.selectedItems.length > 1) {
+            //     let to = p.project.selectedItems[0];
+            //     let from = p.project.selectedItems[p.project.selectedItems.length - 1];
+            //     if (to.segments.length == from.segments.length) {
+            //         let tmp = to.clone();
+            //         tmp.interpolate(from, to, p.processInterface.interpolation);
+            //     }
+            // }
+            let tmpgroup = new p.Group();
+            for (let i = 0; i < p.project.selectedItems.length - 1; i++) {
+                // for(let j=0; j<i<p.project.selectedItems.length; j++) {
+                let to = p.project.selectedItems[i];
+                let from = p.project.selectedItems[i + 1];
+
+
+                let tmp = to.clone();
+
                 if (to.segments.length == from.segments.length) {
-                    let tmp = to.clone();
                     tmp.interpolate(from, to, p.processInterface.interpolation);
+                    let c1 =to.strokeColor.multiply(p.processInterface.interpolation);
+                    let c2 = from.strokeColor.multiply(1.-p.processInterface.interpolation);
+                    tmp.strokeColor = c1.add(c2);
+                    // tmp.strokeColor = p.Color(to.strokeColor).multiply(p.processInterface.interpolation).add(
+                    //     p.Color(from.strokeColor).multiply(1 - p.processInterface.interpolation));
+                    // tmp.fillColor = tmp.strokeColor;
+                    console.log(c1+ " "+c2+" "+tmp.strokeColor);
                 }
+                if (p.Key.isDown('alt')) {
+                    to.remove();
+                    from.remove();
+                } else {
+                    tmp.selected = false;
+
+                }
+                tmpgroup.addChild(tmp);
+                // }
             }
+            //p.project.selectedItems = [];
+            tmpgroup.children.map(v => {
+                v.selected = true;
+            });
+            tmpgroup.parent.insertChildren(tmpgroup.index, tmpgroup.removeChildren());
+            tmpgroup.remove();
+            //tmpgroup.removeChildren();
+
         },
         interpolation: 0.5,
 
@@ -288,10 +327,22 @@ function setupTools() {
                 }
 
                 if (p.Key.isDown('t')) {
+                    if (p.Key.isDown('alt')) {
+                        p.project.selectedItems
+                            .map(i => {
+                                let c = i.clone().set({ selected: false });
+                            })
+                    }
                     p.project.selectedItems
                         .forEach(i => i.position = i.position.add(e.delta));
                 }
                 if (p.Key.isDown('r')) {
+                    if (p.Key.isDown('alt')) {
+                        p.project.selectedItems
+                            .map(i => {
+                                let c = i.clone().set({ selected: false });
+                            })
+                    }
                     p.project.selectedItems.forEach(
                         item => {
                             //item.rotation += event.delta.angle * 0.1;
@@ -303,6 +354,12 @@ function setupTools() {
                 }
                 //if 's' is down scale the selected items
                 if (p.Key.isDown('s')) {
+                    if (p.Key.isDown('alt')) {
+                        p.project.selectedItems
+                            .map(i => {
+                                let c = i.clone().set({ selected: false });
+                            })
+                    }
                     p.project.selectedItems.forEach(
                         function (item) {
                             item.scale(1 + (e.delta.x - e.delta.y) * 0.01,
@@ -332,13 +389,16 @@ function setupTools() {
 
                 p.project.activeLayer.children.forEach(c => {
                     let selected = false;
-                    c.segments.forEach(s => {
-                        selected = selected || tool.selectionPath.contains(s.point);
-                        if (selected) {
-                            s.selected = true;
-                            return;
-                        }
-                    });
+                    if (c.segments) {
+                        c.segments.map(s => {
+                            selected = selected || tool.selectionPath.contains(s.point);
+                            if (selected) {
+                                c.selected = true;
+                                return;
+                            }
+                        });
+                    }
+
                 });
                 // if (selected) {
                 //     p.project.selectedItems.forEach(i => i.selected = true);
@@ -776,9 +836,7 @@ function setupGUI() {
     guiProcess.add(p.processInterface, 'samples', 1, 1000, 1);
     guiProcess.add(p.processInterface, 'stroke');
     guiProcess.add(p.processInterface, 'interpolate');
-    guiProcess.add(p.processInterface, 'interpolation', -2., 2., 0.01).onChange(_ => p.processInterface.interpolate());
-
-
+    guiProcess.add(p.processInterface, 'interpolation', -2., 2., 0.01);
 
     const guiIOFolder = gui.addFolder('Import/Export');
 
