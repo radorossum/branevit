@@ -99,9 +99,12 @@ function setupInterface() {
         },
         interpolate: _ => {
             if (p.project.selectedItems.length > 1) {
-                let a = p.project.selectedItems[0];
-                let b = p.project.selectedItems[p.project.selectedItems.length - 1];
-                let c = new p.Path.interpolate(a, b, p.processInterface.interpolation);
+                let to = p.project.selectedItems[0];
+                let from = p.project.selectedItems[p.project.selectedItems.length - 1];
+                if (to.segments.length == from.segments.length) {
+                    let tmp = to.clone();
+                    tmp.interpolate(from, to, p.processInterface.interpolation);
+                }
             }
         },
         interpolation: 0.5,
@@ -773,7 +776,7 @@ function setupGUI() {
     guiProcess.add(p.processInterface, 'samples', 1, 1000, 1);
     guiProcess.add(p.processInterface, 'stroke');
     guiProcess.add(p.processInterface, 'interpolate');
-    guiProcess.add(p.processInterface, 'interpolation', -2.,2.,0.01).onChange(_ => p.processInterface.interpolate() );
+    guiProcess.add(p.processInterface, 'interpolation', -2., 2., 0.01).onChange(_ => p.processInterface.interpolate());
 
 
 
