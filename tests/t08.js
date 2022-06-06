@@ -14,9 +14,10 @@ window.onload = _ => {
 
     setupTools();
     setupLayers();
+    setupInterface();
     setupGUI();
 
-}
+} 
 
 window.onresize = paper.onResize = _ => {
     paper.view.viewSize = new Size(window.innerWidth, window.innerHeight);
@@ -29,14 +30,14 @@ function setupInterface() {
     }
 
     p.processInterface = {
-        smooth: _ => {
+        smooth: _=> {
             p.project.selectedItems
-                .forEach(v =>
+                .forEach(function(v) {
                     v.smooth({
                         type: p.processInterface.smoothType,
                         factor: p.processInterface.smoothness
-                    }));
-        },
+                    })});
+        }, 
         smoothness: 0.,
         smoothType: 'geometric',
         simplify: _ => {
@@ -48,8 +49,23 @@ function setupInterface() {
             p.project.selectedItems
                 .forEach(v => v.flatten(p.processInterface.flatness));
         },
-        flatness: 0.5
+        flatness: 0.5,
+        resample: function(n) {
+            p.project.selectedItems
+                .forEach(p => {
+                    newSegments = [];
+                    for(let i=0;i<n;i++) {
+                        let s = new p.getPointAt(p.length*i/n);
+                        newSegments.push(s);
+                    }
+                    p.remove();
+                    console.log(s);
+                    p = new p.Path(newSegments);
+                    
 
+                });
+        },
+        samples:10
     }
 }
 
@@ -125,7 +141,7 @@ function setupTools() {
         let movePath = false;
         let mouseDownPoint = null;
 
-        tool.minDistance = 10;
+     //   tool.minDistance = 10;
 
         tool.selectionPath = new Path();
         tool.selectionPath.strokeColor = 'red';
@@ -345,11 +361,6 @@ function setupTools() {
     //     tool.selectionPath.strokeWidth = 1;
     //     //dashed line for selection
     //     tool.selectionPath.dashArray = [5, 5];
-
-
-
-
-
 
     //     tool.onMouseDown = function (e) {
     //         tool.selectionPath.remove();
@@ -708,6 +719,19 @@ function setupGUI() {
     //         if(layer) layer.activate(); 
     //     });
     guiLayerFolder.open();
+    //////
+    const guiProcess = gui.addFolder('Process')
+    guiProcess.add(p.processInterface, 'smooth');
+    guiProcess.add(p.processInterface, 'smoothness', -10., 10., 0.01);
+    guiProcess.add(p.processInterface, 'smoothType', ['geometric', 'catmull-rom', 'bezier']);
+    guiProcess.add(p.processInterface, 'flatten');
+    guiProcess.add(p.processInterface, 'flatness', 0., 100., 0.01);
+    guiProcess.add(p.processInterface, 'simplify');
+    guiProcess.add(p.processInterface, 'simplicity', 0., 100., 0.01);
+    guiProcess.add(p.processInterface, 'resample');
+    guiProcess.add(p.processInterface, 'samples', 1,1000,1);
+
+  
 
     const guiIOFolder = gui.addFolder('Import/Export');
 
@@ -818,9 +842,8 @@ function setupGUI() {
                 let parts = timestamp.match(/^20(.*)T(.*)\.\d*Z$/); // remove timezone
                 let a = document.createElement('a');
                 //rasterize the view to a png blob
-                p.view.draw();
-                let png = p.view.rasterize();
-                a.href = URL.createObjectURL(png);
+                //p.view.draw();
+                a.href =  canvas.toDataURL('image/png');;
 
                 let blob;
                 
@@ -840,5 +863,5 @@ function setupGUI() {
             }
     }, 'pngDownload').name('download PNG');
 
-    gui.addFolder('Process').open();
+    
 }
