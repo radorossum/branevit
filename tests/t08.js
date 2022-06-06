@@ -65,23 +65,47 @@ function setupInterface() {
                             let s = path.getPointAt(path.length * i / n);
                             newSegments.push(s);
                         }
-                        
+
                         // console.log(newSegments);
-                        
+
                         let newpath = new p.Path({ segments: newSegments });
                         newpath.strokeColor = p.Color.random();
-                        newpath.fillColor = p.Color.random();
+                        // newpath.fillColor = p.Color.random();
                         newpath.closed = path.closed;
                         newpath.selected = true;
-                        path.remove();
+                        //path.remove();
+                        path.selected = false;
                         newpath.smooth();
                     }
 
 
                 });
-            
+
         },
-        samples: 10
+        samples: 10,
+        stroke: _ => {
+            p.project.selectedItems.forEach(v => {
+                if (v instanceof p.Path) {
+                    v.strokeColor = p.Color.random();
+                }
+            });
+        },
+        fill: _ => {
+            p.project.selectedItems.forEach(v => {
+                if (v instanceof p.Path) {
+                    v.fillColor = p.Color.random();
+                }
+            });
+        },
+        interpolate: _ => {
+            if (p.project.selectedItems.length > 1) {
+                let a = p.project.selectedItems[0];
+                let b = p.project.selectedItems[p.project.selectedItems.length - 1];
+                let c = new p.Path.interpolate(a, b, p.processInterface.interpolation);
+            }
+        },
+        interpolation: 0.5,
+
     }
 }
 
@@ -556,7 +580,8 @@ function setupGUI() {
                 }
             }
             // on delete or backspace key press
-            if (e.keyCode === 8 || e.keyCode === 46) {
+            //            if (e.keyCode === 8 || e.keyCode === 46) {
+            if (e.keyCode === 46) {
                 p.project.selectedItems.forEach(i => i.remove());
             }
 
@@ -746,6 +771,9 @@ function setupGUI() {
     guiProcess.add(p.processInterface, 'simplicity', 0., 100., 0.01);
     guiProcess.add(p.processInterface, 'resample');
     guiProcess.add(p.processInterface, 'samples', 1, 1000, 1);
+    guiProcess.add(p.processInterface, 'stroke');
+    guiProcess.add(p.processInterface, 'interpolate');
+    guiProcess.add(p.processInterface, 'interpolation', -2.,2.,0.01).onChange(_ => p.processInterface.interpolate() );
 
 
 
