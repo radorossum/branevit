@@ -1,25 +1,26 @@
 
+p = paper;
+
 let gui;
 
 window.onload = _ => {
     // Setup Paper
-    p = paper;
-    pp = paper.project;
+    //pp = paper.project;
     canvas = document.querySelector('canvas');
     p.setup(canvas);
     p.install(window);
 
-
     gui = new dat.GUI();
 
     setupTools();
+    setupElements();
     setupLayers();
     setupInterface();
     setupGUI();
 
 }
 
-window.onresize = paper.onResize = _ => {
+window.onresize = paper.onResize = function () {
     paper.view.viewSize = new Size(window.innerWidth, window.innerHeight);
     console.log("resized to " + view.viewSize.width + "," + view.viewSize.height)
 }
@@ -147,8 +148,49 @@ function setupInterface() {
 
         },
         interpolation: 0.5,
+        close: _ => {
+            p.project.selectedItems.forEach(v => {
+                if (v instanceof p.Path) {
+                    v.closed = !v.closed;
+                }
+            });
+        },
+        reverse: _ => {
+            p.project.selectedItems.forEach(v => {
+                if (v instanceof p.Path) {
+                    v.reverse();
+                }
+            });
+        },
+        //remove fill
+        removeFill: _ => {
+            p.project.selectedItems.forEach(v =>  v.fillColor = null);
+        }
 
     }
+
+}
+
+
+function setupElements() {
+    p.comp = {};
+
+    // background layer
+    //bg = new paper.Layer({name:'background'});
+    // p.bg.name = 'backdrop';
+
+    //     p.bg.type = 'color'; //['color','image','svg','json','none'];
+    //     p.bg.visible = true;
+    //     p.bg.opacity = 1;
+    //     p.bg.activate();
+    //     p.bg.backdrop = new p.Rectangle(0, 0, p.view.size.width, p.view.size.height);
+    //     p.bg.backdrop.fillColor = p.Color.random();
+    //     p.bg.backdrop.name = 'backdrop';
+    //  //   p.bg.addChild(new p.Rectangle(p.view.viewSize.divide(2)));
+    //     p.bg.sendToBack(); 
+    //     //add a rectangle that fills the view to the background layer
+    //    // p.comp.bg.addChild(new p.Rectangle(0, 0, p.view.size.width, p.view.size.height));
+
 }
 
 function setupLayers() {
@@ -204,8 +246,6 @@ function setupLayers() {
     }
     // Create a new Layer
 
-
-
 }
 
 function setupTools() {
@@ -230,6 +270,7 @@ function setupTools() {
         tool.selectionPath.strokeWidth = 1;
         //dashed line for selection
         tool.selectionPath.dashArray = [5, 5];
+        tool.oldPointViewCoords = null;
 
 
         tool.onMouseDown = e => {
@@ -244,6 +285,8 @@ function setupTools() {
                 tool.selectionPath.add(e.point);
                 // console.log('mouse down' + event.point.x + " " + event.point.y);
 
+            } else if (p.Key.isDown('space')) {
+                tool.oldPointViewCoords = p.view.projectToView(e.point);
             } else {
                 let hitResult = p.project.hitTest(e.point, hitOptions);
                 if (!hitResult && !e.modifiers) {
@@ -309,6 +352,10 @@ function setupTools() {
         tool.onMouseDrag = e => {
             if (p.Key.isDown('q')) {
                 tool.selectionPath.add(e.point);
+            } else if (p.Key.isDown('space')) {
+                const delta = e.point.subtract(p.view.viewToProject(tool.oldPointViewCoords));
+                tool.oldPointViewCoords = p.view.projectToView(e.point);
+                p.view.translate(delta);
             } else {
                 if (selectedSegment) {
                     selectedSegment.point =
@@ -363,7 +410,7 @@ function setupTools() {
                     p.project.selectedItems.forEach(
                         function (item) {
                             item.scale(1 + (e.delta.x - e.delta.y) * 0.01,
-                                p.Key.isDown('shift') ? mouseDownPoint : item.position);
+                                p.Key.isDown('`') ? mouseDownPoint : item.position);
                         }
                     );
                 }
@@ -640,14 +687,14 @@ function setupGUI() {
 
                     console.log(p.view);
 
-                    let x=p.view.bounds.x;
-                    let y=p.view.bounds.y;
+                    let x = p.view.bounds.x;
+                    let y = p.view.bounds.y;
                     p.view.zoom = 1.;
-                    p.view.translate(x,y);
-                     x=p.view.bounds.x;
-                     y=p.view.bounds.y;
-                   // p.view.zoom = 1.;
-                     p.view.translate(x,y);
+                    p.view.translate(x, y);
+                    x = p.view.bounds.x;
+                    y = p.view.bounds.y;
+                    // p.view.zoom = 1.;
+                    p.view.translate(x, y);
 
                     // let allLayers = new p.Layer();
                     // allLayers.name = 'allLayers';
@@ -680,7 +727,7 @@ function setupGUI() {
 
 
                 } if (e.metaKey) {
-                    p.project.layers.forEach(l=>l.selected=true);
+                    p.project.layers.forEach(l => l.selected = true);
                     p.project.activeLayer.selected = false;
                     p.project.activeLayer.children.forEach(c => {
                         c.selected = true;
@@ -734,7 +781,7 @@ function setupGUI() {
 
 
     }
-
+    /////////drag+drop read file
     function onDocumentDrag(e) {
         e.preventDefault();
     }
@@ -791,6 +838,7 @@ function setupGUI() {
     document.addEventListener('drop', onDocumentDrop, false);
     document.addEventListener('dragover', onDocumentDrag, false);
     document.addEventListener('dragleave', onDocumentDrag, false);
+    //////////////
 
     const guiToolFolder = gui.addFolder('Tools');
     guiToolFolder.add(p.tools, 'activeTool', p.tools.map(t => t.name))
@@ -874,7 +922,8 @@ function setupGUI() {
     //         if(layer) layer.activate(); 
     //     });
     guiLayerFolder.open();
-    //////
+    //////Process
+    ///////////////////////////////////////////
     const guiProcess = gui.addFolder('Process')
     guiProcess.add(p.processInterface, 'smooth');
     guiProcess.add(p.processInterface, 'smoothness', -10., 10., 0.01);
@@ -888,7 +937,10 @@ function setupGUI() {
     guiProcess.add(p.processInterface, 'stroke');
     guiProcess.add(p.processInterface, 'interpolate');
     guiProcess.add(p.processInterface, 'interpolation', -2., 2., 0.01);
+    guiProcess.add(p.processInterface, 'close');
+    guiProcess.add(p.processInterface, 'removeFill');
 
+    ///////////////////////////////////////////
     const guiIOFolder = gui.addFolder('Import/Export');
 
     guiIOFolder.add({
@@ -934,8 +986,6 @@ function setupGUI() {
             }
     }, 'imageUpload').name('import image');
 
-
-
     //import json
     guiIOFolder.add({
         jsonUpload:
@@ -972,24 +1022,10 @@ function setupGUI() {
                 a.click();
                 body.removeChild(a);
             }
-    }, 'jsonDownload').name('download JSON');
+    }, 'jsonDownload').name('scene as JSON');
 
-    guiIOFolder.add({
-        svgDownload:
-            _ => {
-                let svg = p.project.exportSVG({ asString: true });
-                //  let svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-                let a = document.createElement('a');
-                a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
-                let timestamp = new Date().toJSON().replace(/[-:]/g, '')
-                let parts = timestamp.match(/^20(.*)T(.*)\.\d*Z$/); // remove timezone
-                a.download = `Export_${parts[1]}_${parts[2]}.svg`;
-                let body = document.body;
-                body.appendChild(a);
-                a.click();
-                body.removeChild(a);
-            }
-    }, 'svgDownload').name('download SVG');
+
+
 
     guiIOFolder.add({
         pngDownload:
@@ -1017,7 +1053,52 @@ function setupGUI() {
                 a.click();
                 body.removeChild(a);
             }
-    }, 'pngDownload').name('download PNG');
+    }, 'pngDownload').name('scene as PNG');
+    guiIOFolder.add({
+        svgDownload:
+            _ => {
+                let svg = p.project.exportSVG({ asString: true });
+                //  let svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+                let a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+                let timestamp = new Date().toJSON().replace(/[-:]/g, '')
+                let parts = timestamp.match(/^20(.*)T(.*)\.\d*Z$/); // remove timezone
+                a.download = `Export_${parts[1]}_${parts[2]}.svg`;
+                let body = document.body;
+                body.appendChild(a);
+                a.click();
+                body.removeChild(a);
+            }
+    }, 'svgDownload').name('scene as SVG');
+    guiIOFolder.add({
+        svgSelection:
+            _ => {
+                let svgGroup = new p.Group();
+                p.project.selectedItems.forEach(item => svgGroup.addChild(item));
+   
+                  
+                let svg = svgGroup.exportSVG({ asString: true })
+                    
+                //remove the first '<g xlmns="http://www.w3.org/2000/svg">'
+                 svg = svg.replace('<g xmlns="http:\/\/www.w3.org\/2000\/svg"', '');
+                //svg = svg.replace(/<g /, '');
+               // svg = svg.replace(/<g[^>]*>/, '');
+                svg = `<svg width=\"${p.view.viewSize.width}\" height=\"${p.view.viewSize.height}\" xmlns="http:\/\/www.w3.org\/2000\/svg"> <g`  + svg + '</svg>';
+                //  let svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+                let a = document.createElement('a');
+                a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+                let timestamp = new Date().toJSON().replace(/[-:]/g, '')
+                let parts = timestamp.match(/^20(.*)T(.*)\.\d*Z$/); // remove timezone
+                a.download = `Export_${parts[1]}_${parts[2]}.svg`;
+                let body = document.body;
+                body.appendChild(a);
+                a.click();
+                body.removeChild(a);
+            } 
+    }, 'svgSelection').name('selection as SVG');
+
+    ///////////////////////////////////////////
+    const guiActionFolder = gui.addFolder('Actions');
 
 
 }
