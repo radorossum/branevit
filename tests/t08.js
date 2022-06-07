@@ -46,8 +46,14 @@ function setupInterface() {
         smoothness: 0.,
         smoothType: 'geometric',
         simplify: _ => {
+
             p.project.selectedItems.forEach(
-                v => v.simplify(p.processInterface.simplicity));
+                v => {
+                    if (v instanceof p.Path) {
+                        v.reduce();
+                        v.simplify(p.processInterface.simplicity);
+                    }
+                });
         },
         simplicity: 0.,
         flatten: _ => {
@@ -164,7 +170,7 @@ function setupInterface() {
         },
         //remove fill
         removeFill: _ => {
-            p.project.selectedItems.forEach(v =>  v.fillColor = null);
+            p.project.selectedItems.forEach(v => v.fillColor = null);
         }
 
     }
@@ -176,21 +182,29 @@ function setupElements() {
     p.comp = {};
 
     // background layer
-    //bg = new paper.Layer({name:'background'});
-    // p.bg.name = 'backdrop';
+    p.comp.bg = new paper.Layer({ name: 'background' });
+    p.comp.bg.name = 'background';
+    p.comp.bg.locked = true;
+    p.project.addLayer(p.comp.bg);
+   
+    // bg.name = 'backdrop';
 
-    //     p.bg.type = 'color'; //['color','image','svg','json','none'];
-    //     p.bg.visible = true;
-    //     p.bg.opacity = 1;
-    //     p.bg.activate();
-    //     p.bg.backdrop = new p.Rectangle(0, 0, p.view.size.width, p.view.size.height);
-    //     p.bg.backdrop.fillColor = p.Color.random();
-    //     p.bg.backdrop.name = 'backdrop';
+    p.comp.bg.type = 'color'; //['color','image','svg','json','none'];
+    p.comp.bg.visible = true;
+    p.comp.bg.opacity = 1.;
+    //p.project.layers['background'].activate();
+    //bg.activate();
+    p.comp.bg.sendToBack();
+    p.comp.bg.backdrop = new p.Path.Rectangle(0, 0, p.view.size.width, p.view.size.height);
+    p.comp.bg.addChild(p.comp.bg.backdrop);
+    p.comp.bg.backdrop.fillColor = p.Color.random();
+    p.comp.bg.backdrop.strokeColor = p.Color.random();
+    p.comp.bg.backdrop.name = 'backdrop';
     //  //   p.bg.addChild(new p.Rectangle(p.view.viewSize.divide(2)));
     //     p.bg.sendToBack(); 
     //     //add a rectangle that fills the view to the background layer
     //    // p.comp.bg.addChild(new p.Rectangle(0, 0, p.view.size.width, p.view.size.height));
-
+   
 }
 
 function setupLayers() {
@@ -242,9 +256,9 @@ function setupLayers() {
         name: '...',
         opacity: 1.,
         style: '',
-
     }
     // Create a new Layer
+    p.project.layers['Layer 0'].activate();
 
 }
 
@@ -680,6 +694,7 @@ function setupGUI() {
                 console.log('escape key pressed');
                 //if the shift key is pressed
                 if (e.shiftKey) {
+                    console.log('escape-shift key pressed');
                     p.project.activeLayer.children.forEach(c => {
                         c.selected = !c.selected;
                     });
@@ -726,15 +741,14 @@ function setupGUI() {
 
 
 
-                } if (e.metaKey) {
-                    p.project.layers.forEach(l => l.selected = true);
-                    p.project.activeLayer.selected = false;
-                    p.project.activeLayer.children.forEach(c => {
-                        c.selected = true;
-                    });
-                }
-                else {
-
+                } else if (e.metaKey) {
+                    p.project.layers.forEach(l=>{
+                        if(!l.locked) l.children.forEach(ll => ll.selected = true)});
+                   // p.project.activeLayer.selected = false;
+                    // p.project.activeLayer.children.forEach(c => {
+                    //     c.selected = true;
+                    // });
+                } else {
                     p.project.selectedItems.forEach(i => i.selected = false);
                     // p.project.selectedItems.for = [];
 
@@ -902,6 +916,7 @@ function setupGUI() {
     //     .onChange(_ => p.project.activeLayer.selected = _);
 
     // guiLayerFolder.add()   
+    //    guiLayerFolder.add(p.project.layerInterface, 'style', p.styles).onChange(_ => p.project.activeLayer.style = _).listen();
     guiLayerFolder.add({
         layerPanel: _ => paperjsLayersPanel.create({
             title: '', draggable: true
@@ -1075,15 +1090,14 @@ function setupGUI() {
             _ => {
                 let svgGroup = new p.Group();
                 p.project.selectedItems.forEach(item => svgGroup.addChild(item));
-   
-                  
+
                 let svg = svgGroup.exportSVG({ asString: true })
-                    
+
                 //remove the first '<g xlmns="http://www.w3.org/2000/svg">'
-                 svg = svg.replace('<g xmlns="http:\/\/www.w3.org\/2000\/svg"', '');
-                //svg = svg.replace(/<g /, '');
-               // svg = svg.replace(/<g[^>]*>/, '');
-                svg = `<svg width=\"${p.view.viewSize.width}\" height=\"${p.view.viewSize.height}\" xmlns="http:\/\/www.w3.org\/2000\/svg"> <g`  + svg + '</svg>';
+                svg = svg.replace('<g xmlns="http:\/\/www.w3.org\/2000\/svg"', '');
+                //      svg = `<svg xmlns="http:\/\/www.w3.org\/2000\/svg"> <g`  + svg + '</svg>';
+
+                svg = `<svg width=\"${p.view.viewSize.width}\" height=\"${p.view.viewSize.height}\" xmlns="http:\/\/www.w3.org\/2000\/svg"> <g` + svg + '</svg>';
                 //  let svgBlob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
                 let a = document.createElement('a');
                 a.href = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
@@ -1094,7 +1108,7 @@ function setupGUI() {
                 body.appendChild(a);
                 a.click();
                 body.removeChild(a);
-            } 
+            }
     }, 'svgSelection').name('selection as SVG');
 
     ///////////////////////////////////////////
