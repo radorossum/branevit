@@ -28,6 +28,70 @@ window.onresize = paper.onResize = function () {
 function setupInterface() {
     // Actions
     p.actionInterface = {
+        // Actions
+        //source layer
+        source: '_',
+        //target layer
+        target: '_',
+        //blend mode
+        blendMode: 'normal',
+        //move selection to target layer
+        move: _ => {
+            let source = p.layers[p.actionInterface.source];
+            let target = p.layers[p.actionInterface.target];
+            if (source && target) {
+                source.children.forEach(item => {
+                    item.remove();
+                    target.addChild(item);
+                });
+            }
+        },
+        //copy selection to target layer
+        copy: _ => {
+            let source = p.layers[p.actionInterface.source];
+            let target = p.layers[p.actionInterface.target];
+            if (source && target) {
+                source.children.forEach(item => {
+                    item.clone().insertAbove(target);
+                });
+            }
+        },
+        //delete selection
+        delete: _ => {
+            let source = p.layers[p.actionInterface.source];
+            if (source) {
+                source.children.forEach(item => {
+                    item.remove();
+                });
+            }
+        },
+        // probabilistic selection
+        select: (prob) => {   
+            let source = p.layers[p.actionInterface.source];
+            if (source) {
+                source.children.forEach(item => {
+                    if (Math.random() < prob) {
+                        item.selected = true;
+                    }
+                });
+            }
+        },
+        selectProbability:1.,  
+        //randomize blend mode of the selected items
+        blendModeRnd: _ => {
+            //let source = p.layers[p.actionInterface.source];
+            let source = p.project.selectedItems;
+            if (source) {
+                source.forEach(item => {
+                    if (item.selected) {
+                        item.blendMode = p.blendModes[Math.floor(Math.random() * p.blendModes.length)];
+                    }
+                });
+            }
+        }
+
+
+
     }
 
     p.processInterface = {
@@ -70,7 +134,7 @@ function setupInterface() {
                         newSegments = [];
                         for (let i = 0; i <= n; i++) {
                             let s = path.getPointAt(path.length * i / n);
-                            newSegments.push(s);
+                            if (s) newSegments.push(s);
                         }
 
                         // console.log(newSegments);
@@ -121,7 +185,6 @@ function setupInterface() {
                 let to = p.project.selectedItems[i];
                 let from = p.project.selectedItems[i + 1];
 
-
                 let tmp = to.clone();
 
                 if (to.segments.length == from.segments.length) {
@@ -132,7 +195,7 @@ function setupInterface() {
                     // tmp.strokeColor = p.Color(to.strokeColor).multiply(p.processInterface.interpolation).add(
                     //     p.Color(from.strokeColor).multiply(1 - p.processInterface.interpolation));
                     // tmp.fillColor = tmp.strokeColor;
-                    console.log(c1 + " " + c2 + " " + tmp.strokeColor);
+      //              console.log(c1 + " " + c2 + " " + tmp.strokeColor);
                 }
                 if (p.Key.isDown('alt')) {
                     to.remove();
@@ -154,6 +217,30 @@ function setupInterface() {
 
         },
         interpolation: 0.5,
+        bridge: (parts) => {
+            parts = parts || p.processInterface.bridgeSegments;
+            let tmpgroup = new p.Group();
+            for (let i = 0; i < p.project.selectedItems.length - 1; i++) {
+                let to = p.project.selectedItems[i];
+                let from = p.project.selectedItems[i + 1];
+                for (let j=0;j<parts;j++) {
+                    let tmp = to.clone();
+                    tmp.interpolate(from, to, j/parts);
+                    tmp.selected = false;
+                    tmpgroup.addChild(tmp);
+                    let c1 = to.strokeColor.multiply(j/parts);
+                    let c2 = from.strokeColor.multiply(1. -j/parts);
+                    tmp.strokeColor = c1.add(c2);
+                }
+                tmpgroup.children.map(v => {
+                    v.selected = true;
+                });
+                tmpgroup.parent.insertChildren(tmpgroup.index, tmpgroup.removeChildren());
+                tmpgroup.remove();
+            }
+        },
+        bridgeSegments:3,
+        
         close: _ => {
             p.project.selectedItems.forEach(v => {
                 if (v instanceof p.Path) {
@@ -204,6 +291,15 @@ function setupElements() {
     p.comp.bg.backdrop.update = function () {
         p.comp.bg.backdrop.size = p.view.size;
     };
+
+    //////////////////////
+    p.comp.src = new paper.Layer({ name: 'sources' }); 
+    p.comp.src.locked = true;
+    p.project.addLayer(p.comp.src);
+    p.comp.src.sendToBack();
+
+
+
 }
 
 function setupLayers() {
@@ -968,6 +1064,8 @@ function setupGUI() {
     guiProcess.add(p.processInterface, 'stroke');
     guiProcess.add(p.processInterface, 'interpolate');
     guiProcess.add(p.processInterface, 'interpolation', -2., 2., 0.01);
+    guiProcess.add(p.processInterface, 'bridge');
+    guiProcess.add(p.processInterface, 'bridgeSegments', 1, 100, 1).name('parts');
     guiProcess.add(p.processInterface, 'close');
     guiProcess.add(p.processInterface, 'removeFill');
 
@@ -1129,6 +1227,14 @@ function setupGUI() {
 
     ///////////////////////////////////////////
     const guiActionFolder = gui.addFolder('Actions');
+    guiActionFolder.add(p.actionInterface,'source');
+    guiActionFolder.add(p.actionInterface,'target');
+    guiActionFolder.add(p.actionInterface,'blendMode');
+    guiActionFolder.add(p.actionInterface,'move');
+    guiActionFolder.add(p.actionInterface,'copy');
+    guiActionFolder.add(p.actionInterface,'delete');
+    
+    
 
 
 
