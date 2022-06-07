@@ -186,25 +186,24 @@ function setupElements() {
     p.comp.bg.name = 'background';
     p.comp.bg.locked = true;
     p.project.addLayer(p.comp.bg);
-   
-    // bg.name = 'backdrop';
 
+    
     p.comp.bg.type = 'color'; //['color','image','svg','json','none']; 
     p.comp.bg.visible = true;
     p.comp.bg.opacity = 1.;
     //p.project.layers['background'].activate();
     //bg.activate();
     p.comp.bg.sendToBack();
-    p.comp.bg.backdrop = new p.Path.Rectangle(0, 0, p.view.size.width, p.view.size.height);
+    p.comp.bg.backdrop = new p.Shape.Rectangle(0, 0, p.view.size.width, p.view.size.height);
+    p.comp.bg.backdrop.visible = true;
     p.comp.bg.addChild(p.comp.bg.backdrop);
-    p.comp.bg.backdrop.fillColor = '#888';
-    p.comp.bg.backdrop.strokeColor = '#333'; 
-    p.comp.bg.backdrop.name = 'backdrop';
-    //  //   p.bg.addChild(new p.Rectangle(p.view.viewSize.divide(2)));
-    //     p.bg.sendToBack(); 
-    //     //add a rectangle that fills the view to the background layer
-    //    // p.comp.bg.addChild(new p.Rectangle(0, 0, p.view.size.width, p.view.size.height));
-   
+    p.comp.bg.backdrop.name = 'backdrop_solid';
+    p.comp.bg.backdrop.fillColor = p.comp.bg.backdrop.color1 = '#888';
+    // p.comp.bg.backdrop.strokeColor = '#333'; 
+    p.comp.bg.backdrop.name = 'backdrop'
+    p.comp.bg.backdrop.update = function () {
+        p.comp.bg.backdrop.size = p.view.size;
+    };
 }
 
 function setupLayers() {
@@ -594,20 +593,21 @@ function setupTools() {
 
     ///////////////////
     // pan view tool
-    (_ => {
-        const tool = new p.Tool({ name: 'pan' });
-        let oldPointViewCoords;
+    //////////////////
+    // (_ => {
+    //     const tool = new p.Tool({ name: 'pan' });
+    //     let oldPointViewCoords;
 
-        tool.onMouseDown = e => {
-            oldPointViewCoords = p.view.projectToView(e.point);
-        }
+    //     tool.onMouseDown = e => {
+    //         oldPointViewCoords = p.view.projectToView(e.point);
+    //     }
 
-        tool.onMouseDrag = e => {
-            const delta = e.point.subtract(p.view.viewToProject(oldPointViewCoords));
-            oldPointViewCoords = p.view.projectToView(e.point);
-            p.view.translate(delta);
-        }
-    })();
+    //     tool.onMouseDrag = e => {
+    //         const delta = e.point.subtract(p.view.viewToProject(oldPointViewCoords));
+    //         oldPointViewCoords = p.view.projectToView(e.point);
+    //         p.view.translate(delta);
+    //     }
+    // })();
 
     // old drawing line
     (_ => {
@@ -742,9 +742,10 @@ function setupGUI() {
 
 
                 } else if (e.metaKey) {
-                    p.project.layers.forEach(l=>{
-                        if(!l.locked) l.children.forEach(ll => ll.selected = true)});
-                   // p.project.activeLayer.selected = false;
+                    p.project.layers.forEach(l => {
+                        if (!l.locked) l.children.forEach(ll => ll.selected = true)
+                    });
+                    // p.project.activeLayer.selected = false;
                     // p.project.activeLayer.children.forEach(c => {
                     //     c.selected = true;
                     // });
@@ -941,8 +942,16 @@ function setupGUI() {
     const guiBackground = gui.addFolder('Background');
     //guiBackground.addColor({bg:fillColor}, 'fillColor');
     //guiBackground.addColor({bg:strokeColor}, 'strokeColor'); 
-    guiBackground.add(p.comp.bg,'opacity',0.,1.,0.1); 
-   // guiBackground.add(p.comp.bg.backdrop, 'strokeWidth').min(0).max(10).step(0.1);
+    guiBackground.addColor(p.comp.bg.backdrop, 'color1')
+        .onChange(_ => {
+            //  paper.comp.bg.backdrop.fillColor = p.Color.random();  
+            p.comp.bg.backdrop.fillColor = _
+        });
+    guiBackground.add(p.comp.bg.backdrop, 'visible');
+    // guiBackground.addColor(p.comp.bg.backdrop
+    guiBackground.add(p.comp.bg, 'opacity', 0., 1., 0.1);
+    guiBackground.add(p.comp.bg.backdrop, 'update');
+    //guiBackground.add(p.comp.bg.backdrop, 'strokeWidth').min(0).max(10).step(0.1);
 
     //////Process
     ///////////////////////////////////////////
@@ -1120,7 +1129,7 @@ function setupGUI() {
 
     ///////////////////////////////////////////
     const guiActionFolder = gui.addFolder('Actions');
-    
+
 
 
 }
