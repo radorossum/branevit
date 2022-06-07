@@ -189,7 +189,7 @@ function setupElements() {
    
     // bg.name = 'backdrop';
 
-    p.comp.bg.type = 'color'; //['color','image','svg','json','none'];
+    p.comp.bg.type = 'color'; //['color','image','svg','json','none']; 
     p.comp.bg.visible = true;
     p.comp.bg.opacity = 1.;
     //p.project.layers['background'].activate();
@@ -197,8 +197,8 @@ function setupElements() {
     p.comp.bg.sendToBack();
     p.comp.bg.backdrop = new p.Path.Rectangle(0, 0, p.view.size.width, p.view.size.height);
     p.comp.bg.addChild(p.comp.bg.backdrop);
-    p.comp.bg.backdrop.fillColor = p.Color.random();
-    p.comp.bg.backdrop.strokeColor = p.Color.random();
+    p.comp.bg.backdrop.fillColor = '#888';
+    p.comp.bg.backdrop.strokeColor = '#333'; 
     p.comp.bg.backdrop.name = 'backdrop';
     //  //   p.bg.addChild(new p.Rectangle(p.view.viewSize.divide(2)));
     //     p.bg.sendToBack(); 
@@ -937,6 +937,13 @@ function setupGUI() {
     //         if(layer) layer.activate(); 
     //     });
     guiLayerFolder.open();
+
+    const guiBackground = gui.addFolder('Background');
+    //guiBackground.addColor({bg:fillColor}, 'fillColor');
+    //guiBackground.addColor({bg:strokeColor}, 'strokeColor'); 
+    guiBackground.add(p.comp.bg,'opacity',0.,1.,0.1); 
+   // guiBackground.add(p.comp.bg.backdrop, 'strokeWidth').min(0).max(10).step(0.1);
+
     //////Process
     ///////////////////////////////////////////
     const guiProcess = gui.addFolder('Process')
@@ -1113,6 +1120,7 @@ function setupGUI() {
 
     ///////////////////////////////////////////
     const guiActionFolder = gui.addFolder('Actions');
+    
 
 
 }
