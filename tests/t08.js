@@ -284,7 +284,12 @@ function setupInterface() {
         //remove fill
         removeFill: _ => {
             p.project.selectedItems.forEach(v => v.fillColor = null);
+        },
+        //fit to view
+        fitToView: _ => {
+            p.project.selectedItems.map(i=>i.fitBounds(p.view.bounds))
         }
+
 
     }
 
@@ -1125,6 +1130,7 @@ function setupGUI() {
     guiProcess.add(p.processInterface, 'bridgeSegments', 1, 100, 1).name('parts');
     guiProcess.add(p.processInterface, 'close');
     guiProcess.add(p.processInterface, 'removeFill');
+    guiProcess.add(p.processInterface, 'fitToView');
 
     ///////////////////////////////////////////
     const guiIOFolder = gui.addFolder('Import/Export');
