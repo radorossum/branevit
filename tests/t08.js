@@ -287,7 +287,7 @@ function setupInterface() {
         },
         //fit to view
         fitToView: _ => {
-            p.project.selectedItems.map(i=>i.fitBounds(p.view.bounds))
+            p.project.selectedItems.map(i => i.fitBounds(p.view.bounds))
         }
 
 
@@ -630,19 +630,19 @@ function setupTools() {
         tool.onMouseUp = function (e) {
             mouseUpPoint = e.point;
             path.add(mouseUpPoint);
- 
+
             if (e.modifiers.alt) {
                 path.closed = true;
             }
             if (e.modifiers.meta)
                 path.fillColor = p.Color.random();
-            
+
             if (!e.modifiers.shift) {
                 path.smooth();
                 path.simplify();
                 //path.selected = true;
             }
-            
+
             path = null;
         }
     })();
@@ -1175,13 +1175,13 @@ function setupGUI() {
                             console.log(raster);
                             raster.fitBounds(p.view.bounds);
                             raster.fitBounds(p.comp.bg.backdrop.bounds);
-                           // p.comp.src.addChild(raster);
+                            // p.comp.src.addChild(raster);
                         }
 
-                        
-                       
 
-                        
+
+
+
                         //p.project.importImage(image);
                     };
                     reader.readAsDataURL(file);
@@ -1258,6 +1258,32 @@ function setupGUI() {
                 body.removeChild(a);
             }
     }, 'pngDownload').name('scene as PNG');
+
+    guiIOFolder.add({
+        canvas2Raster:
+            _ => {
+                let raster = new p.Raster(canvas.toDataURL('image/png'));
+                raster.name = 'canvas2raster';
+                raster.onLoad = _ => {
+                    raster.fitBounds(p.view.bounds);
+                    p.project.addLayer(raster);
+                }
+            }
+    }, 'canvas2Raster').name('canvas to raster'); 
+
+    guiIOFolder.add({
+        selection2Raster:
+            _ => {
+                let selectionGroup = new p.Group(p.project.selectedItems);
+                let raster = selectionGroup.rasterize();
+                raster.onLoad = _ => {
+                    raster.fitBounds(p.view.bounds);
+                    p.project.addLayer(raster);
+                }
+            }
+    },'selection2Raster').name('selection to raster');
+
+
     guiIOFolder.add({
         svgDownload:
             _ => {
@@ -1310,7 +1336,7 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'cut');
     guiActionFolder.add(p.actionInterface, 'paste');
     guiActionFolder.add(p.actionInterface, 'delete');
- //   guiActionFolder.add(p.actionInterface, 'select');
+    //   guiActionFolder.add(p.actionInterface, 'select');
 
 
 
