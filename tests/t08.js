@@ -43,14 +43,12 @@ function setupInterface() {
             let target = p.project.layers.find(l => l.name == p.actionInterface.target);
 
             if (source && target) {
-                for(let i=source.children.length-1; i>=0; i--) {
+                for (let i = source.children.length - 1; i >= 0; i--) {
                     let item = source.children[i];
                     //add item to target layer
                     item.remove();
                     target.addChild(item);
-
                     //item.moveTo(target);
-                    
                 }
                 target.reverseChildren();
             }
@@ -63,15 +61,13 @@ function setupInterface() {
         cut: _ => {
             p.comp.clipboard.removeChildren();
             p.project.selectedItems.map(
-                item => {               
+                item => {
                     item.copyTo(p.comp.clipboard);
                     item.remove();
                 }
             )
-  
         },
         paste: _ => {
-
             p.comp.clipboard.children.map(item => item.copyTo(p.project.activeLayer))
             p.comp.clipboard.removeChildren();
             p.actionInterface.copy();
@@ -80,7 +76,7 @@ function setupInterface() {
             //     //add item to target layer
             //     item.copyTo(p.project.activeLayer);
             //     //item.moveTo(target);
-                
+
             // }
             // p.comp.clipboard.children.forEach(
             //     item=>item.addTo(p.project.activeLayer)
@@ -89,9 +85,9 @@ function setupInterface() {
         //delete selection
         delete: _ => {
 
-            for(let i=p.project.selectedItems.length-1; i>=0; i--) {
+            for (let i = p.project.selectedItems.length - 1; i >= 0; i--) {
                 p.project.selectedItems[i].remove();
-                
+
             }
         },
         // probabilistic selection
@@ -629,16 +625,19 @@ function setupTools() {
         tool.onMouseUp = function (e) {
             mouseUpPoint = e.point;
             path.add(mouseUpPoint);
-            path.smooth();
-            if (e.modifiers.alt)
+ 
+            if (e.modifiers.alt) {
                 path.closed = true;
+            }
             if (e.modifiers.meta)
                 path.fillColor = p.Color.random();
-            path.simplify();
-            if (e.modifiers.shift) {
-                path.selected = true;
+            
+            if (!e.modifiers.shift) {
+                path.smooth();
+                path.simplify();
+                //path.selected = true;
             }
-            // toolPath.removeOnDrag();
+            
             path = null;
         }
     })();
@@ -788,8 +787,6 @@ function setupTools() {
 function setupGUI() {
     // Pinch-to-zoom
     if (p.DomEvent) {
-
-
 
         // canvas.on('wheel', function (event) {
         //     var e = event,
@@ -941,12 +938,6 @@ function setupGUI() {
             }
 
         });
-
-
-
-
-
-
     }
     /////////drag+drop read file
     function onDocumentDrag(e) {
@@ -1120,7 +1111,7 @@ function setupGUI() {
     const guiProcess = gui.addFolder('Process')
     guiProcess.add(p.processInterface, 'smooth');
     guiProcess.add(p.processInterface, 'smoothness', -10., 10., 0.01);
-    guiProcess.add(p.processInterface, 'smoothType', ['geometric', 'catmull-rom', 'bezier']);
+    guiProcess.add(p.processInterface, 'smoothType', ['geometric', 'catmull-rom', 'continuous', 'asymmetric']);
     guiProcess.add(p.processInterface, 'flatten');
     guiProcess.add(p.processInterface, 'flatness', 0., 100., 0.01);
     guiProcess.add(p.processInterface, 'simplify');
@@ -1169,7 +1160,8 @@ function setupGUI() {
                     let reader = new FileReader();
                     reader.onload = e => {
                         let image = e.target.result;
-                        raster = new Raster(image);
+                        let raster = new p.Raster(image);
+                        raster.fitBounds(p.activeLayer.bounds);
                         //p.project.importImage(image);
                     };
                     reader.readAsDataURL(file);
@@ -1218,9 +1210,6 @@ function setupGUI() {
                 body.removeChild(a);
             }
     }, 'jsonDownload').name('scene as JSON');
-
-
-
 
     guiIOFolder.add({
         pngDownload:
