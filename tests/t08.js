@@ -37,36 +37,61 @@ function setupInterface() {
         blendMode: 'normal',
         //move selection to target layer
         move: _ => {
-            let source = p.layers[p.actionInterface.source];
-            let target = p.layers[p.actionInterface.target];
+            //find layer with name p.actionInterface.source
+            let source = p.project.layers.find(l => l.name == p.actionInterface.source);
+            //find layer with name p.actionInterface.target
+            let target = p.project.layers.find(l => l.name == p.actionInterface.target);
+
             if (source && target) {
-                source.children.forEach(item => {
+                for(let i=source.children.length-1; i>=0; i--) {
+                    let item = source.children[i];
+                    //add item to target layer
                     item.remove();
                     target.addChild(item);
-                });
+
+                    //item.moveTo(target);
+                    
+                }
+                target.reverseChildren();
             }
         },
         //copy selection to target layer
         copy: _ => {
-            let source = p.layers[p.actionInterface.source];
-            let target = p.layers[p.actionInterface.target];
-            if (source && target) {
-                source.children.forEach(item => {
-                    item.clone().insertAbove(target);
-                });
+            p.comp.clipboard.removeChildren();
+            p.project.selectedItems.forEach(
+                //add item to clipboard
+                item => {
+                    p.comp.clipboard.addChild(item.clone());
+                }
+            )
+        },
+        cut: _ => {
+            p.comp.clipboard.removeChildren();
+            for(let i=p.project.selectedItems.length-1; i>=0; i--) {
+                let item = p.project.selectedItems[i];
+                //add item to clipboard
+                item.remove();
+                p.comp.clipboard.addChild(item);
+                
             }
+            p.comp.clipboard.reverseChildren();
+  
+        },
+        paste: _ => {
+            p.comp.clipboard.children.forEach(
+                item=>p.project.activeLayer.addChild(item)
+            )
         },
         //delete selection
         delete: _ => {
-            let source = p.layers[p.actionInterface.source];
-            if (source) {
-                source.children.forEach(item => {
-                    item.remove();
-                });
+
+            for(let i=p.project.selectedItems.length-1; i>=0; i--) {
+                p.project.selectedItems[i].remove();
+                
             }
         },
         // probabilistic selection
-        select: (prob) => {   
+        select: (prob) => {
             let source = p.layers[p.actionInterface.source];
             if (source) {
                 source.children.forEach(item => {
@@ -76,7 +101,7 @@ function setupInterface() {
                 });
             }
         },
-        selectProbability:1.,  
+        selectProbability: 1.,
         //randomize blend mode of the selected items
         blendModeRnd: _ => {
             //let source = p.layers[p.actionInterface.source];
@@ -89,9 +114,6 @@ function setupInterface() {
                 });
             }
         }
-
-
-
     }
 
     p.processInterface = {
@@ -195,7 +217,7 @@ function setupInterface() {
                     // tmp.strokeColor = p.Color(to.strokeColor).multiply(p.processInterface.interpolation).add(
                     //     p.Color(from.strokeColor).multiply(1 - p.processInterface.interpolation));
                     // tmp.fillColor = tmp.strokeColor;
-      //              console.log(c1 + " " + c2 + " " + tmp.strokeColor);
+                    //              console.log(c1 + " " + c2 + " " + tmp.strokeColor);
                 }
                 if (p.Key.isDown('alt')) {
                     to.remove();
@@ -221,26 +243,30 @@ function setupInterface() {
             parts = parts || p.processInterface.bridgeSegments;
             let tmpgroup = new p.Group();
             for (let i = 0; i < p.project.selectedItems.length - 1; i++) {
-                let to = p.project.selectedItems[i];
-                let from = p.project.selectedItems[i + 1];
-                for (let j=0;j<parts;j++) {
+                let from = p.project.selectedItems[i];
+                let to = p.project.selectedItems[i + 1];
+                for (let j = 0; j < parts; j++) {
                     let tmp = to.clone();
-                    tmp.interpolate(from, to, j/parts);
+                    tmp.interpolate(from, to, j / parts);
                     tmp.selected = false;
                     tmpgroup.addChild(tmp);
-                    let c1 = to.strokeColor.multiply(j/parts);
-                    let c2 = from.strokeColor.multiply(1. -j/parts);
+                    let c1 = to.strokeColor.multiply(j / parts);
+                    let c2 = from.strokeColor.multiply(1. - j / parts);
                     tmp.strokeColor = c1.add(c2);
                 }
-                tmpgroup.children.map(v => {
-                    v.selected = true;
-                });
+
+            }
+            tmpgroup.children.map(v => {
+                v.selected = true;
+            });
+
+            if (tmpgroup.parent) {
                 tmpgroup.parent.insertChildren(tmpgroup.index, tmpgroup.removeChildren());
                 tmpgroup.remove();
             }
         },
-        bridgeSegments:3,
-        
+        bridgeSegments: 3,
+
         close: _ => {
             p.project.selectedItems.forEach(v => {
                 if (v instanceof p.Path) {
@@ -264,9 +290,9 @@ function setupInterface() {
 
 }
 
-
 function setupElements() {
     p.comp = {};
+    p.comp.clipboard = new p.Group();
 
     // background layer
     p.comp.bg = new paper.Layer({ name: 'background' });
@@ -274,7 +300,7 @@ function setupElements() {
     p.comp.bg.locked = true;
     p.project.addLayer(p.comp.bg);
 
-    
+
     p.comp.bg.type = 'color'; //['color','image','svg','json','none']; 
     p.comp.bg.visible = true;
     p.comp.bg.opacity = 1.;
@@ -285,7 +311,7 @@ function setupElements() {
     p.comp.bg.backdrop.visible = true;
     p.comp.bg.addChild(p.comp.bg.backdrop);
     p.comp.bg.backdrop.name = 'backdrop_solid';
-    p.comp.bg.backdrop.fillColor = p.comp.bg.backdrop.color1 = '#888';
+    p.comp.bg.backdrop.fillColor = p.comp.bg.backdrop.color1 = '#555';
     // p.comp.bg.backdrop.strokeColor = '#333'; 
     p.comp.bg.backdrop.name = 'backdrop'
     p.comp.bg.backdrop.update = function () {
@@ -293,12 +319,10 @@ function setupElements() {
     };
 
     //////////////////////
-    p.comp.src = new paper.Layer({ name: 'sources' }); 
+    p.comp.src = new paper.Layer({ name: 'sources' });
     p.comp.src.locked = true;
     p.project.addLayer(p.comp.src);
     p.comp.src.sendToBack();
-
-
 
 }
 
@@ -359,6 +383,8 @@ function setupLayers() {
 
 function setupTools() {
     // edit tool
+    p.tools.minDistance = 0;
+    p.tools.maxDistance = 0;
     (_ => {
         let tool = new p.Tool({ name: 'edit' });
         let hitOptions = {
@@ -567,16 +593,13 @@ function setupTools() {
             }//
             tool.selectionPath.remove();
         }
-
-
-
-
     })();
 
     // pencil draw tool
     (_ => {
-        const tool = new p.Tool({ name: 'pencil' });
-        tool.minDistance = 10;
+        let tool = new p.Tool({ name: 'pencil' });
+        tool.minDistance = p.tools.minDistance;
+        tool.maxDistance = p.tools.maxDistance;
         let path;
         let selectionPath;
         let mouseDownPoint, mouseUpPoint;
@@ -591,7 +614,6 @@ function setupTools() {
         }
 
         tool.onMouseDrag = e => path.add(e.point);
-
 
         tool.onMouseUp = function (e) {
             mouseUpPoint = e.point;
@@ -746,6 +768,8 @@ function setupTools() {
         p.tools.activeTool = name;
         const tool = p.tools.find(tool => tool.name === name);
         tool.activate();
+        tool.minDistance = p.tools.minDistance;
+        tool.maxDistance = p.tools.maxDistance;
     };
     p.tools.setActiveTool(p.tools.activeTool); // activate the tool
 }
@@ -753,6 +777,9 @@ function setupTools() {
 function setupGUI() {
     // Pinch-to-zoom
     if (p.DomEvent) {
+
+
+
         // canvas.on('wheel', function (event) {
         //     var e = event,
         //         view = p.scope.view,
@@ -783,6 +810,12 @@ function setupGUI() {
 
         //add event handler for escape key
         document.addEventListener('keydown', e => {
+            if ((e.keyCode == 71 && e.altKey)) {
+                if (e.shiftKey) { gui.closed ? gui.open() : gui.close(); }
+                else {
+                    gui.domElement.style.display = gui.domElement.style.display == 'none' ? 'block' : 'none';
+                }
+            }
             if (e.keyCode === 27) {
                 //p.view.scale(1);
                 //fit the view to the window
@@ -955,6 +988,16 @@ function setupGUI() {
     guiToolFolder.add(p.tools, 'activeTool', p.tools.map(t => t.name))
         .name('active tool')
         .onChange(_ => p.tools.setActiveTool(_)).listen();
+    guiToolFolder.add(p.tools, 'minDistance', 0., 100.)
+        .name('minDistance').onChange(_ => {
+            p.tools.minDistance = _;
+            p.tools.setActiveTool(p.tools.activeTool)
+        });
+    guiToolFolder.add(p.tools, 'maxDistance', 0., 100.)
+        .name('maxDistance').onChange(_ => {
+            p.tools.maxDistance = _;
+            p.tools.setActiveTool(p.tools.activeTool)
+        });
 
     guiToolFolder.open();
 
@@ -1227,14 +1270,14 @@ function setupGUI() {
 
     ///////////////////////////////////////////
     const guiActionFolder = gui.addFolder('Actions');
-    guiActionFolder.add(p.actionInterface,'source');
-    guiActionFolder.add(p.actionInterface,'target');
-    guiActionFolder.add(p.actionInterface,'blendMode');
-    guiActionFolder.add(p.actionInterface,'move');
-    guiActionFolder.add(p.actionInterface,'copy');
-    guiActionFolder.add(p.actionInterface,'delete');
-    
-    
+    guiActionFolder.add(p.actionInterface, 'source');
+    guiActionFolder.add(p.actionInterface, 'target');
+    guiActionFolder.add(p.actionInterface, 'blendMode');
+    guiActionFolder.add(p.actionInterface, 'move');
+    guiActionFolder.add(p.actionInterface, 'copy');
+    guiActionFolder.add(p.actionInterface, 'cut');
+    guiActionFolder.add(p.actionInterface, 'paste');
+    guiActionFolder.add(p.actionInterface, 'delete');
 
 
 
