@@ -58,29 +58,32 @@ function setupInterface() {
         //copy selection to target layer
         copy: _ => {
             p.comp.clipboard.removeChildren();
-            p.project.selectedItems.forEach(
-                //add item to clipboard
-                item => {
-                    p.comp.clipboard.addChild(item.clone());
-                }
-            )
+            p.project.selectedItems.map(item => item.copyTo(p.comp.clipboard));
         },
         cut: _ => {
             p.comp.clipboard.removeChildren();
-            for(let i=p.project.selectedItems.length-1; i>=0; i--) {
-                let item = p.project.selectedItems[i];
-                //add item to clipboard
-                item.remove();
-                p.comp.clipboard.addChild(item);
-                
-            }
-            p.comp.clipboard.reverseChildren();
+            p.project.selectedItems.map(
+                item => {               
+                    item.copyTo(p.comp.clipboard);
+                    item.remove();
+                }
+            )
   
         },
         paste: _ => {
-            p.comp.clipboard.children.forEach(
-                item=>p.project.activeLayer.addChild(item)
-            )
+
+            p.comp.clipboard.children.map(item => item.copyTo(p.project.activeLayer))
+            p.comp.clipboard.removeChildren();
+            // for(let i=0; i<p.comp.clipboard.children.length; i++) {
+            //     let item = p.comp.clipboard.children[i];
+            //     //add item to target layer
+            //     item.copyTo(p.project.activeLayer);
+            //     //item.moveTo(target);
+                
+            // }
+            // p.comp.clipboard.children.forEach(
+            //     item=>item.addTo(p.project.activeLayer)
+            // )
         },
         //delete selection
         delete: _ => {
@@ -292,7 +295,7 @@ function setupInterface() {
 
 function setupElements() {
     p.comp = {};
-    p.comp.clipboard = new p.Group();
+
 
     // background layer
     p.comp.bg = new paper.Layer({ name: 'background' });
@@ -323,6 +326,14 @@ function setupElements() {
     p.comp.src.locked = true;
     p.project.addLayer(p.comp.src);
     p.comp.src.sendToBack();
+
+    p.comp.clipboard = new p.Layer();
+    p.comp.clipboard.name = "clipboard";
+    p.comp.clipboard.visible = false;
+    p.comp.clipboard.locked = true;
+    p.comp.clipboard.selectable = false;
+    p.project.addLayer(p.comp.clipboard);
+    p.comp.clipboard.sendToBack();
 
 }
 
