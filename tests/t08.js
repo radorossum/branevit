@@ -74,6 +74,7 @@ function setupInterface() {
 
             p.comp.clipboard.children.map(item => item.copyTo(p.project.activeLayer))
             p.comp.clipboard.removeChildren();
+            p.actionInterface.copy();
             // for(let i=0; i<p.comp.clipboard.children.length; i++) {
             //     let item = p.comp.clipboard.children[i];
             //     //add item to target layer
@@ -295,7 +296,6 @@ function setupInterface() {
 
 function setupElements() {
     p.comp = {};
-
 
     // background layer
     p.comp.bg = new paper.Layer({ name: 'background' });
@@ -926,6 +926,18 @@ function setupGUI() {
                 p.tools.activeTool = p.tools[nextIndex].name;
                 p.tools.setActiveTool(p.tools.activeTool);
 
+            }
+            // on meta+x key press cut
+            if (e.keyCode === 88 && e.metaKey) {
+                p.actionInterface.cut();
+            }
+            // on meta+c key press copy
+            if (e.keyCode === 67 && e.metaKey) {
+                p.actionInterface.copy();
+            }
+            // on meta+v key press paste
+            if (e.keyCode === 86 && e.metaKey) {
+                p.actionInterface.paste();
             }
 
         });
