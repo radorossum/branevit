@@ -1161,7 +1161,21 @@ function setupGUI() {
                     reader.onload = e => {
                         let image = e.target.result;
                         let raster = new p.Raster(image);
-                        raster.fitBounds(p.activeLayer.bounds);
+                        //fit raster inside canvas
+                        // raster.position.x = (p.comp.size.width - raster.bounds.width) / 2;
+                        // raster.position.y = (p.comp.size.height - raster.bounds.height) / 2;
+                        // p.project.addLayer(raster);
+                        raster.onLoad = _ => {
+                            console.log(raster);
+                            raster.fitBounds(p.view.bounds);
+                            raster.fitBounds(p.comp.bg.backdrop.bounds);
+                           // p.comp.src.addChild(raster);
+                        }
+
+                        
+                       
+
+                        
                         //p.project.importImage(image);
                     };
                     reader.readAsDataURL(file);
@@ -1290,6 +1304,8 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'cut');
     guiActionFolder.add(p.actionInterface, 'paste');
     guiActionFolder.add(p.actionInterface, 'delete');
+ //   guiActionFolder.add(p.actionInterface, 'select');
+
 
 
 
