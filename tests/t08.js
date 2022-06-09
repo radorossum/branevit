@@ -27,11 +27,17 @@ window.onresize = paper.onResize = function () {
 
 function setupInterface() {
     p.colorInterface = {
+        method:'flat',
+        modulation:'none',
         color1: '#000',
         color2: '#fff',
         color3: '#0ff',
         color4: '#ff0',
+        removeStroke:_=>p.project.selectedItems.strokeColor = null,
+        removeFill:_=>p.project.selectedItems.fillColor = null,
+
     }
+
     // Actions
     p.actionInterface = {
         // Actions
@@ -1318,6 +1324,17 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'delete');
     guiActionFolder.add(p.actionInterface, 'select');
     guiActionFolder.add(p.actionInterface, 'selectProbability', 0., 1., 0.01);
+
+    ///////////////////////////////////////////
+    const guiColorFlder = gui.addFolder('Colors');
+    guiColorFlder.addColor(p.colorInterface, 'color1');
+    guiColorFlder.addColor(p.colorInterface, 'color2');
+    guiColorFlder.addColor(p.colorInterface, 'color3');
+    guiColorFlder.addColor(p.colorInterface, 'color4');
+    guiColorFlder.add(p.colorInterface, 'removeStroke');
+    guiColorFlder.add(p.colorInterface, 'removeFill');
+
+
 
 
 
