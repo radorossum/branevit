@@ -26,6 +26,12 @@ window.onresize = paper.onResize = function () {
 }
 
 function setupInterface() {
+    p.colorInterface = {
+        color1: '#000',
+        color2: '#fff',
+        color3: '#0ff',
+        color4: '#ff0',
+    }
     // Actions
     p.actionInterface = {
         // Actions
@@ -92,15 +98,13 @@ function setupInterface() {
         },
         // probabilistic selection
         select: (prob) => {
-            let source = p.layers[p.actionInterface.source];
-            if (source) {
-                source.children.forEach(item => {
-                    if (Math.random() < prob) {
-                        item.selected = true;
-                    }
-                });
-            }
+            prob = prob || p.actionInterface.selectProbability;
+            let selected = p.project.selectedItems;
+            selected.map(item => {
+                Math.random() > prob ? item.selected = false : item.selected = true;
+            })
         },
+        
         selectProbability: 1.,
         //randomize blend mode of the selected items
         blendModeRnd: _ => {
@@ -242,17 +246,22 @@ function setupInterface() {
         bridge: (parts) => {
             parts = parts || p.processInterface.bridgeSegments;
             let tmpgroup = new p.Group();
-            for (let i = 0; i < p.project.selectedItems.length - 1; i++) {
-                let from = p.project.selectedItems[i];
-                let to = p.project.selectedItems[i + 1];
-                for (let j = 0; j < parts; j++) {
-                    let tmp = to.clone();
-                    tmp.interpolate(from, to, j / parts);
-                    tmp.selected = false;
-                    tmpgroup.addChild(tmp);
-                    let c1 = to.strokeColor.multiply(j / parts);
-                    let c2 = from.strokeColor.multiply(1. - j / parts);
-                    tmp.strokeColor = c1.add(c2);
+            let selected = p.project.getItems({ class: Path, selected: true });
+            for (let i = 0; i < selected.length - 1; i++) {
+
+                let from = selected[i];
+                if (['Path', 'CompoundPath'].includes(from.className)) {
+                    let to = selected[i + 1];
+
+                    for (let j = 0; j < parts; j++) {
+                        let tmp = to.clone();
+                        tmp.interpolate(from, to, j / parts);
+                        tmp.selected = false;
+                        tmpgroup.addChild(tmp);
+                        let c1 = to.strokeColor.multiply(j / parts);
+                        let c2 = from.strokeColor.multiply(1. - j / parts);
+                        tmp.strokeColor = c1.add(c2);
+                    }
                 }
 
             }
@@ -853,35 +862,6 @@ function setupGUI() {
                     // p.view.zoom = 1.;
                     p.view.translate(x, y);
 
-                    // let allLayers = new p.Layer();
-                    // allLayers.name = 'allLayers';
-                    // let merge = new p.Group({ name: 'merge' });
-                    // console.log('control key pressed');
-                    // for (let i = p.project.layers.length -1; i >= 0; i--) {
-                    //     if (p.project.layers[i].name != 'allLayers') {
-                    //         allLayers.addChild(p.project.layers[i]);
-                    //     }
-                    // }
-                    // console.log(allLayers.parent);
-                    // console.log(merge.parent);
-                    // p.project.layers.forEach(l => {
-                    //     console.log(l.name);
-                    //     if (l.name != "merge") allLayers.addChild(l)
-                    // }); 
-                    // allLayers.parent.addChild(allLayers.removeChildren());
-                    // allLayers.remove();
-                    // allLayers.fitBounds(p.view.bounds);
-                    // p.view.insertChildren(allLayers.index, allLayers.removeChildren());
-                    // allLayers.remove(); 
-                    // move the children of allLayers to the top
-                    // allLayers.children.forEach(c => {
-                    //     if (c.name != 'merge') {
-                    //     c.parent = merge
-                    //     }
-                    // });
-
-
-
 
                 } else if (e.metaKey) {
                     p.project.layers.forEach(l => {
@@ -1269,7 +1249,7 @@ function setupGUI() {
                     p.project.addLayer(raster);
                 }
             }
-    }, 'canvas2Raster').name('canvas to raster'); 
+    }, 'canvas2Raster').name('canvas to raster');
 
     guiIOFolder.add({
         selection2Raster:
@@ -1281,7 +1261,7 @@ function setupGUI() {
                     p.project.addLayer(raster);
                 }
             }
-    },'selection2Raster').name('selection to raster');
+    }, 'selection2Raster').name('selection to raster');
 
 
     guiIOFolder.add({
@@ -1336,8 +1316,8 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'cut');
     guiActionFolder.add(p.actionInterface, 'paste');
     guiActionFolder.add(p.actionInterface, 'delete');
-    //   guiActionFolder.add(p.actionInterface, 'select');
-
+    guiActionFolder.add(p.actionInterface, 'select');
+    guiActionFolder.add(p.actionInterface, 'selectProbability', 0., 1., 0.01);
 
 
 
