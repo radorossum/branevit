@@ -376,12 +376,16 @@ function setupInterfaces() {
                 layer.addChild(rect);
 
             }
+            layer.visible = true;
             let raster = layer.rasterize();
             raster.name = 'raster_palette';
-            layer.addChild(raster);
+            layer.removeChildren();
+            
+           layer.addChild(raster);
             raster.onLoad = _ => {
                 //raster.fitBounds(p.view.bounds);
-                layer.addChild(raster);
+                
+                // layer.addChild(raster);
             }
         },
         strokeChoice:'#000',
