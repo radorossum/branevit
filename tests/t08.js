@@ -355,22 +355,33 @@ function setupInterfaces() {
             return this.palette[Math.floor(Math.random() * this.palette.length)];
         },
 
-        draw: function (palette, layer, clearfirst) {
-            var palette = palette || p.paletteInterface.palette;
-            var layer = layer || project.layers[0];
-            var clearfirst = clearfirst || true;
-            var ncolors = palette.length;
-            var w = view.size.width / ncolors;
-            var h = view.size.height;
+        draw: function (pal, layer, clearfirst) {
+            pal = pal || p.paletteInterface.palette;
+            layer = layer || p.comp.clipboard;
+             clearfirst = clearfirst || true;
+            let ncolors = pal.length;
+            let w = view.size.width / ncolors;
+            let h = view.size.height; 
+             
+
             if (clearfirst) layer.removeChildren();
             for (var i = 0; i < ncolors; i++) {
-                var color = palette[i];
+                var color = pal[i];
                 var rect = new Path.Rectangle({
                     point: [i * w, 0],
                     size: [w, h],
                     fillColor: color,
                     //strokeColor:'white'
                 });
+                layer.addChild(rect);
+
+            }
+            let raster = layer.rasterize();
+            raster.name = 'raster_palette';
+            layer.addChild(raster);
+            raster.onLoad = _ => {
+                //raster.fitBounds(p.view.bounds);
+                layer.addChild(raster);
             }
         },
         strokeChoice:'#000',
@@ -426,7 +437,7 @@ function setupLayers() {
     let layer = p.project.activeLayer;
     layer.name = "Layer 0";
     p.blendModes = ['normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard- light', 'color-dodge', 'color-burn', 'darken', 'lighten', 'difference', 'exclusion', 'hue', 'saturation', 'luminosity', 'color', 'add', 'subtract', 'average', 'pin-light', 'negation', 'source-over', 'source-in', 'source-out', 'source-atop', 'destination-over', 'destination-in', 'destination-out', 'destination-atop', 'lighter', 'darker', 'copy', 'xor'];
-
+ 
     p.project.layerInterface = {
         layerNames: _ => {
             p.project.layers.map(l => l.name);
@@ -1185,7 +1196,7 @@ function setupGUI() {
     guiPalette.add(p.paletteInterface, 'prob5', 0, 1).step(0.01);
     guiPalette.add(p.paletteInterface, 'ncolors', 1, 256).step(1);
     guiPalette.add(p.paletteInterface, 'build');
-    guiPalette.add(p.paletteInterface, 'draw');
+    guiPalette.add(p.paletteInterface, 'draw').onChange(_=>p.paletteInterface.draw(layer=p.comp.clipboard));
     guiPalette.add(p.paletteInterface, 'strokeChoice',['black','white','random','color0','color1','color2','color3','color4','color5']);
     gui.remember(p.paletteInterface);
 
@@ -1416,13 +1427,13 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'selectProbability', 0., 1., 0.01);
 
     ///////////////////////////////////////////
-    const guiColorFlder = gui.addFolder('Colors');
-    guiColorFlder.addColor(p.colorInterface, 'color1');
-    guiColorFlder.addColor(p.colorInterface, 'color2');
-    guiColorFlder.addColor(p.colorInterface, 'color3');
-    guiColorFlder.addColor(p.colorInterface, 'color4');
-    guiColorFlder.add(p.colorInterface, 'removeStroke');
-    guiColorFlder.add(p.colorInterface, 'removeFill');
+    // const guiColorFlder = gui.addFolder('Colors');
+    // guiColorFlder.addColor(p.colorInterface, 'color1');
+    // guiColorFlder.addColor(p.colorInterface, 'color2');
+    // guiColorFlder.addColor(p.colorInterface, 'color3');
+    // guiColorFlder.addColor(p.colorInterface, 'color4');
+    // guiColorFlder.add(p.colorInterface, 'removeStroke');
+    // guiColorFlder.add(p.colorInterface, 'removeFill');
 
 
 
