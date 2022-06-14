@@ -15,7 +15,7 @@ window.onload = _ => {
     setupTools();
     setupElements();
     setupLayers();
-    setupInterface();
+    setupInterfaces();
     setupGUI();
 
 }
@@ -25,16 +25,16 @@ window.onresize = paper.onResize = function () {
     console.log("resized to " + view.viewSize.width + "," + view.viewSize.height)
 }
 
-function setupInterface() {
+function setupInterfaces() {
     p.colorInterface = {
-        method:'flat',
-        modulation:'none',
+        method: 'flat',
+        modulation: 'none',
         color1: '#000',
         color2: '#fff',
         color3: '#0ff',
         color4: '#ff0',
-        removeStroke:_=>p.project.selectedItems.strokeColor = null,
-        removeFill:_=>p.project.selectedItems.fillColor = null,
+        removeStroke: _ => p.project.selectedItems.strokeColor = null,
+        removeFill: _ => p.project.selectedItems.fillColor = null,
 
     }
 
@@ -110,7 +110,7 @@ function setupInterface() {
                 Math.random() > prob ? item.selected = false : item.selected = true;
             })
         },
-        
+
         selectProbability: 1.,
         //randomize blend mode of the selected items
         blendModeRnd: _ => {
@@ -306,6 +306,75 @@ function setupInterface() {
         }
 
 
+    }
+
+    p.sourceInterface = {
+        type: 'paint', //paint, gradients, palette, reference
+    }
+
+    p.gridInterface = {
+
+    }
+
+    p.paletteInterface = {
+        ncolors: 5,
+        color0: '#000000',
+        prob0: .5,
+        color1: '#ffffff',
+        prob1: .5,
+        color2: '#333',
+        prob2: 0.,
+        color3: '#666',
+        prob3: 0.,
+        color4: '#999',
+        prob4: 0.,
+        color5: '#bbb',
+        prob5: 0.,
+        palette: ['#000', '#fff'],
+        colors: [],
+        colorWeights: [],
+        build: function () {
+            this.colors = [this.color0, this.color1, this.color2, this.color3, this.color4, this.color5];
+            this.colorWeights = [this.prob0, this.prob1, this.prob2, this.prob3, this.prob4, this.prob5];
+            //normalize colorweights using reduce
+            var sum = this.colorWeights.reduce(function (a, b) { return a + b; });
+            this.colorWeights = this.colorWeights.map(function (x) { return x / sum; });
+            //this.colorWeights = this.colorWeights.map(x =>{return x/this.colorWeights.reduce((a,b)=>{return a+b;},0)},this);
+            this.palette = [];
+            for (var i = 0; i < this.colors.length; i++) {
+                for (var j = 0; j < this.colorWeights[i] * this.ncolors; j++) {
+                    this.palette.push(this.colors[i]);
+                    if (this.palette.length >= this.ncolors) break;
+                }
+            }
+        },
+        sorthue: function () { },
+        sortlightness: function () { },
+        randomize: function () { },
+        randomColor: function () {
+            return this.palette[Math.floor(Math.random() * this.palette.length)];
+        },
+
+        draw: function (palette, layer, clearfirst) {
+            var palette = palette || p.paletteInterface.palette;
+            var layer = layer || project.layers[0];
+            var clearfirst = clearfirst || true;
+            var ncolors = palette.length;
+            var w = view.size.width / ncolors;
+            var h = view.size.height;
+            if (clearfirst) layer.removeChildren();
+            for (var i = 0; i < ncolors; i++) {
+                var color = palette[i];
+                var rect = new Path.Rectangle({
+                    point: [i * w, 0],
+                    size: [w, h],
+                    fillColor: color,
+                    //strokeColor:'white'
+                });
+            }
+        },
+        strokeChoice:'#000',
+ 
     }
 
 }
@@ -1099,6 +1168,27 @@ function setupGUI() {
 
     //////Process
     ///////////////////////////////////////////
+
+    ////////////////////////////////////////////////////////////
+    const guiPalette = gui.addFolder('Palette');
+    guiPalette.addColor(p.paletteInterface, 'color0');
+    guiPalette.addColor(p.paletteInterface, 'color1');
+    guiPalette.addColor(p.paletteInterface, 'color2');
+    guiPalette.addColor(p.paletteInterface, 'color3');
+    guiPalette.addColor(p.paletteInterface, 'color4');
+    guiPalette.addColor(p.paletteInterface, 'color5');
+    guiPalette.add(p.paletteInterface, 'prob0', 0, 1).step(0.01);
+    guiPalette.add(p.paletteInterface, 'prob1', 0, 1).step(0.01);
+    guiPalette.add(p.paletteInterface, 'prob2', 0, 1).step(0.01);
+    guiPalette.add(p.paletteInterface, 'prob3', 0, 1).step(0.01);
+    guiPalette.add(p.paletteInterface, 'prob4', 0, 1).step(0.01);
+    guiPalette.add(p.paletteInterface, 'prob5', 0, 1).step(0.01);
+    guiPalette.add(p.paletteInterface, 'ncolors', 1, 256).step(1);
+    guiPalette.add(p.paletteInterface, 'build');
+    guiPalette.add(p.paletteInterface, 'draw');
+    guiPalette.add(p.paletteInterface, 'strokeChoice',['black','white','random','color0','color1','color2','color3','color4','color5']);
+    gui.remember(p.paletteInterface);
+
     const guiProcess = gui.addFolder('Process')
     guiProcess.add(p.processInterface, 'smooth');
     guiProcess.add(p.processInterface, 'smoothness', -10., 10., 0.01);
