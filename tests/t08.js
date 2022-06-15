@@ -40,7 +40,13 @@ function setupInterfaces() {
         },
         random: _ => {return p.Color.random()},
         fixed: _ => {return p.brushInterface.strokeColor},
-        none: _=> {return null}
+        none: _=> {return null},
+        paletternd: _ => {
+            return p.paletteInterface.palette[Math.floor(Math.random() * p.paletteInterface.palette.length)];
+   
+          //  return p.paletteInterface.palette[p.randomInt(0, p.paletteInterface.palette.length - 1)];
+        }
+
     }
 
     // Actions
@@ -131,10 +137,10 @@ function setupInterfaces() {
         },
 
         palettize: function () {
-            project.selectedItems.forEach(
+            p.project.selectedItems.forEach(
                 function (item) {
-                    item.fillColor = paletteInterface.randomColor();
-                    item.strokeColor = paletteInterface.randomColor();
+                    item.fillColor = p.paletteInterface.randomColor();
+                    item.strokeColor = p.paletteInterface.randomColor();
                 }
             );
         },
@@ -1110,8 +1116,8 @@ function setupGUI() {
 
     //////////////////////////////////////////////
         const guiBrushFolder = gui.addFolder('Brush');
-        guiBrushFolder.add(p.brushInterface,'strokeMethod',['fixed','random','none']);
-        guiBrushFolder.add(p.brushInterface,'fillMethod',['fixed','random','none']);
+        guiBrushFolder.add(p.brushInterface,'strokeMethod',['fixed','random','none','paletternd']);
+        guiBrushFolder.add(p.brushInterface,'fillMethod',['fixed','random','none','paletternd']);
         guiBrushFolder.addColor(p.brushInterface,'strokeColor');
         guiBrushFolder.addColor(p.brushInterface,'fillColor');
         guiBrushFolder.add(p.brushInterface,'strokeWidth',0.,100.,0.1);
@@ -1457,6 +1463,7 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'delete');
     guiActionFolder.add(p.actionInterface, 'select');
     guiActionFolder.add(p.actionInterface, 'selectProbability', 0., 1., 0.01);
+    guiActionFolder.add(p.actionInterface, 'palettize');
 
     ///////////////////////////////////////////
     // const guiColorFlder = gui.addFolder('Colors');
