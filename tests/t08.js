@@ -159,16 +159,21 @@ function setupInterfaces() {
 
     p.processInterface = {
         smooth: _ => {
-            p.project.selectedItems
-                .forEach(function (v) {
-                    // if v is a path or compound path
-                    if (v instanceof p.Path) {
-                        v.smooth({
-                            type: p.processInterface.smoothType,
-                            factor: p.processInterface.smoothness
-                        })
-                    }
-                });
+            let selected = p.project.getItems({ class: Path, selected: true });
+            selected.map(v=>v.smooth({
+                type: p.processInterface.smoothType,
+                factor: p.processInterface.smoothness
+            }));
+            // p.project.selectedItems
+            //     .forEach(function (v) {
+            //         // if v is a path or compound path
+            //         if (v instanceof p.Path) {
+            //             v.smooth({
+            //                 type: p.processInterface.smoothType,
+            //                 factor: p.processInterface.smoothness
+            //             })
+            //         }
+            //     });
         },
         smoothness: 0.,
         smoothType: 'geometric',
@@ -256,11 +261,7 @@ function setupInterfaces() {
                     let c1 = to.strokeColor.multiply(p.processInterface.interpolation);
                     let c2 = from.strokeColor.multiply(1. - p.processInterface.interpolation);
                     tmp.strokeColor = c1.add(c2);
-                    // tmp.strokeColor = p.Color(to.strokeColor).multiply(p.processInterface.interpolation).add(
-                    //     p.Color(from.strokeColor).multiply(1 - p.processInterface.interpolation));
-                    // tmp.fillColor = tmp.strokeColor;
-                    //              console.log(c1 + " " + c2 + " " + tmp.strokeColor);
-                }
+                 }
                 if (p.Key.isDown('alt')) {
                     to.remove();
                     from.remove();
@@ -317,18 +318,16 @@ function setupInterfaces() {
         bridgeSegments: 3,
 
         close: _ => {
-            p.project.selectedItems.forEach(v => {
-                if (v instanceof p.Path) {
-                    v.closed = !v.closed;
-                }
-            });
+            let selected = p.project.getItems({ class: Path, selected: true });
+            selected.map(v => v.closePath());
+            // p.project.selectedItems.forEach(v => {
+            //     if (v instanceof p.Path) {
+            //         v.closed = !v.closed;
+            //     }
+            // });
         },
         reverse: _ => {
-            p.project.selectedItems.forEach(v => {
-                if (v instanceof p.Path) {
-                    v.reverse();
-                }
-            });
+            p.project.selectedItems.map(v =>v.reverse());
         },
         //remove fill
         removeFill: _ => {
@@ -337,6 +336,10 @@ function setupInterfaces() {
         //fit to view
         fitToView: _ => {
             p.project.selectedItems.map(i => i.fitBounds(p.view.bounds))
+        },
+        fitToLast: _=>{
+            let last = p.project.selectedItems[p.project.selectedItems.length-1];
+            p.project.selectedItems.map(i => i.fitBounds(last.bounds));
         }
 
 
@@ -707,6 +710,13 @@ function setupTools() {
         }
 
         tool.onMouseUp = e => {
+            // if 'b' is down box select
+            if (p.Key.isDown('b')) {
+                let rect = new Rectangle(mouseDownPoint, e.point);
+                let selected = p.project.getItemsInRect(rect);
+                selected.forEach(i => i.selected = true);
+            }
+            
             if (p.Key.isDown('q')) {
                 // if (e.item) {
                 tool.selectionPath.add(e.point);
@@ -886,38 +896,38 @@ function setupTools() {
     //     }
     // })();
 
-    // old drawing line
-    (_ => {
-        const tool = new p.Tool()
-        tool.name = 'line'
-        let path
-        tool.onMouseDown = (e) => {
-            path = new p.Path()
-            path.strokeColor = '#424242'
-            path.strokeWidth = 4
-            path.add(e.point)
-        }
+    // // old drawing line
+    // (_ => {
+    //     const tool = new p.Tool()
+    //     tool.name = 'line'
+    //     let path
+    //     tool.onMouseDown = (e) => {
+    //         path = new p.Path()
+    //         path.strokeColor = '#424242'
+    //         path.strokeWidth = 4
+    //         path.add(e.point)
+    //     }
 
-        tool.onMouseDrag = function (event) {
-            path.add(event.point)
-        }
-    })();
+    //     tool.onMouseDrag = function (event) {
+    //         path.add(event.point)
+    //     }
+    // })();
 
-    // spot tool
-    (_ => {
-        const tool = new p.Tool()
-        tool.name = 'dot'
+    // // spot tool
+    // (_ => {
+    //     const tool = new p.Tool()
+    //     tool.name = 'dot'
 
-        let path
+    //     let path
 
-        tool.onMouseDown = function (event) {
-            path = new p.Path.Circle({
-                center: event.point,
-                radius: 30,
-                fillColor: '#9C27B0'
-            })
-        }
-    })();
+    //     tool.onMouseDown = function (event) {
+    //         path = new p.Path.Circle({
+    //             center: event.point,
+    //             radius: 30,
+    //             fillColor: '#9C27B0'
+    //         })
+    //     }
+    // })();
 
 
     p.tools.activeTool = 'pencil';
@@ -1289,6 +1299,8 @@ function setupGUI() {
     guiProcess.add(p.processInterface, 'close');
     guiProcess.add(p.processInterface, 'removeFill');
     guiProcess.add(p.processInterface, 'fitToView');
+    guiProcess.add(p.processInterface, 'fitToLast');
+    guiProcess.add(p.processInterface,'reverse');
 
     ///////////////////////////////////////////
     const guiIOFolder = gui.addFolder('Import/Export');
