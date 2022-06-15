@@ -27,8 +27,8 @@ var paramActions = {
     palettize: function () {
         project.selectedItems.forEach(
             function (item) {
-                item.fillColor = p.paletteInterface.randomColor();
-                item.strokeColor = p.paletteInterface.randomColor();
+                item.fillColor = paletteInterface.randomColor();
+                item.strokeColor = paletteInterface.randomColor();
             }
         );
     },
@@ -174,7 +174,7 @@ var paramRndBlobs = {
 
 // Palette
 ///////////////////////////////////
-var p.paletteInterface = {
+var paletteInterface = {
     ncolors: 5,
     color0: '#000000',
     prob0: .5,
@@ -214,7 +214,7 @@ var p.paletteInterface = {
     },
 
     draw: function (palette, layer, clearfirst) {
-        var palette = palette || p.paletteInterface.palette;
+        var palette = palette || paletteInterface.palette;
         var layer = layer || project.layers[0];
         var clearfirst = clearfirst || true;
         var ncolors = palette.length;
@@ -292,7 +292,7 @@ function setupDrawTool() {
 
     tool.onMouseDown = function (event) {
         toolPath = new Path();
-        toolPath.strokeColor = p.paletteInterface.randomColor();
+        toolPath.strokeColor = paletteInterface.randomColor();
         toolPath.strokeWidth = 1;
         mouseDownPoint = event.point;
         toolPath.add(mouseDownPoint);
@@ -595,21 +595,21 @@ function setupGUI() {
 
     ////////////////////////////////////////////////////////////
     var guiPalette = gui.addFolder('Palette');
-    guiPalette.addColor(p.paletteInterface, 'color0');
-    guiPalette.addColor(p.paletteInterface, 'color1');
-    guiPalette.addColor(p.paletteInterface, 'color2');
-    guiPalette.addColor(p.paletteInterface, 'color3');
-    guiPalette.addColor(p.paletteInterface, 'color4');
-    guiPalette.addColor(p.paletteInterface, 'color5');
-    guiPalette.add(p.paletteInterface, 'prob0', 0, 1).step(0.01);
-    guiPalette.add(p.paletteInterface, 'prob1', 0, 1).step(0.01);
-    guiPalette.add(p.paletteInterface, 'prob2', 0, 1).step(0.01);
-    guiPalette.add(p.paletteInterface, 'prob3', 0, 1).step(0.01);
-    guiPalette.add(p.paletteInterface, 'prob4', 0, 1).step(0.01);
-    guiPalette.add(p.paletteInterface, 'prob5', 0, 1).step(0.01);
-    guiPalette.add(p.paletteInterface, 'ncolors', 1, 256).step(1);
-    guiPalette.add(p.paletteInterface, 'build');
-    guiPalette.add(p.paletteInterface, 'draw');
+    guiPalette.addColor(paletteInterface, 'color0');
+    guiPalette.addColor(paletteInterface, 'color1');
+    guiPalette.addColor(paletteInterface, 'color2');
+    guiPalette.addColor(paletteInterface, 'color3');
+    guiPalette.addColor(paletteInterface, 'color4');
+    guiPalette.addColor(paletteInterface, 'color5');
+    guiPalette.add(paletteInterface, 'prob0', 0, 1).step(0.01);
+    guiPalette.add(paletteInterface, 'prob1', 0, 1).step(0.01);
+    guiPalette.add(paletteInterface, 'prob2', 0, 1).step(0.01);
+    guiPalette.add(paletteInterface, 'prob3', 0, 1).step(0.01);
+    guiPalette.add(paletteInterface, 'prob4', 0, 1).step(0.01);
+    guiPalette.add(paletteInterface, 'prob5', 0, 1).step(0.01);
+    guiPalette.add(paletteInterface, 'ncolors', 1, 256).step(1);
+    guiPalette.add(paletteInterface, 'build');
+    guiPalette.add(paletteInterface, 'draw');
     ////////////////////////////////////////////////////////////
     var guiLayers = gui.addFolder('Layers');
     guiLayers.add(paramLayers, 'activeLayer', project.layers.map(function (l) { return l.name })).onChange(function (value) {
@@ -643,7 +643,7 @@ function setup() {
     project.layers[project.layers.length - 1].activate();
     setupGUI();
     paramLayers.activeLayer = project.layers[project.layers.length - 1].name;
-    p.paletteInterface.build();
+    paletteInterface.build();
     paramBackdrop.create();
     //paramRndBlobs.create();
 

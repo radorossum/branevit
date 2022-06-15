@@ -26,16 +26,21 @@ window.onresize = paper.onResize = function () {
 }
 
 function setupInterfaces() {
-    p.colorInterface = {
-        method: 'flat',
-        modulation: 'none',
-        color1: '#000',
-        color2: '#fff',
-        color3: '#0ff',
-        color4: '#ff0',
-        removeStroke: _ => p.project.selectedItems.strokeColor = null,
-        removeFill: _ => p.project.selectedItems.fillColor = null,
-
+    p.brushInterface = {
+        strokeMethod: 'random', //fixed, random, none, color0, color1, paletternd, paletteindex
+        fillMethod: 'none',
+        strokeColor: '#000',
+        fillColor: '#fff',
+        strokeWidth: 1,
+        getStrokeColor: _ => {
+            return p.brushInterface[p.brushInterface.strokeMethod]();
+        },
+        getFillColor: _ => {
+            return p.brushInterface[p.brushInterface.fillMethod]();
+        },
+        random: _ => {return p.Color.random()},
+        fixed: _ => {return p.brushInterface.strokeColor},
+        none: _=> {return null}
     }
 
     // Actions
@@ -123,7 +128,16 @@ function setupInterfaces() {
                     }
                 });
             }
-        }
+        },
+
+        palettize: function () {
+            project.selectedItems.forEach(
+                function (item) {
+                    item.fillColor = paletteInterface.randomColor();
+                    item.strokeColor = paletteInterface.randomColor();
+                }
+            );
+        },
     }
 
     p.processInterface = {
@@ -496,6 +510,7 @@ function setupTools() {
     // edit tool
     p.tools.minDistance = 0;
     p.tools.maxDistance = 0;
+
     (_ => {
         let tool = new p.Tool({ name: 'edit' });
         let hitOptions = {
@@ -718,10 +733,12 @@ function setupTools() {
         tool.onMouseDown = function (e) {
             path = new p.Path();
             // path.strokeColor = paramPalette.randomColor();
-            path.strokeColor = p.Color.random();
-            path.strokeWidth = 1;
+            // path.strokeColor = p.Color.random();
+            path.strokeColor = p.brushInterface.getStrokeColor();
+            path.fillColor = p.brushInterface.getFillColor();
+            path.strokeWidth = p.brushInterface.strokeWidth;
             mouseDownPoint = e.point;
-            path.add(mouseDownPoint);
+            path.add(e.point);
         }
 
         tool.onMouseDrag = e => path.add(e.point);
@@ -734,7 +751,8 @@ function setupTools() {
                 path.closed = true;
             }
             if (e.modifiers.meta)
-                path.fillColor = p.Color.random();
+               // path.fillColor = p.Color.random();
+                path.fillColor = p.brushInterface.getFillColor();
 
             if (!e.modifiers.shift) {
                 path.smooth();
@@ -1089,6 +1107,16 @@ function setupGUI() {
         });
 
     guiToolFolder.open();
+
+    //////////////////////////////////////////////
+        const guiBrushFolder = gui.addFolder('Brush');
+        guiBrushFolder.add(p.brushInterface,'strokeMethod',['fixed','random','none']);
+        guiBrushFolder.add(p.brushInterface,'fillMethod',['fixed','random','none']);
+        guiBrushFolder.addColor(p.brushInterface,'strokeColor');
+        guiBrushFolder.addColor(p.brushInterface,'fillColor');
+        guiBrushFolder.add(p.brushInterface,'strokeWidth',0.,100.,0.1);
+
+    //////////////////////////////////////////////
 
     const guiLayerFolder = gui.addFolder('Layers');
     //add button to add a new layer
