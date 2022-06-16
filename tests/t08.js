@@ -15,7 +15,7 @@ window.onload = _ => {
     setupTools();
     setupInterfaces();
     setupLayers();
- 
+
     setupGUI();
 
 }
@@ -58,7 +58,7 @@ function setupInterfaces() {
         }
 
     }
-    
+
 
     // Actions
     p.actionInterface = {
@@ -93,7 +93,6 @@ function setupInterfaces() {
             p.project.selectedItems.map(item => {
                 item.copyTo(p.comp.clipboard);
                 item.selected = false;
-                
             });
             p.comp.clipboard.selected = false;
         },
@@ -108,8 +107,8 @@ function setupInterfaces() {
         },
         paste: _ => {
             p.comp.clipboard.children.map(item => item.copyTo(p.project.activeLayer))
-           // p.comp.clipboard.removeChildren();
-          //  p.actionInterface.copy();
+            // p.comp.clipboard.removeChildren();
+            //  p.actionInterface.copy();
             // for(let i=0; i<p.comp.clipboard.children.length; i++) {
             //     let item = p.comp.clipboard.children[i];
             //     //add item to target layer
@@ -166,36 +165,52 @@ function setupInterfaces() {
     p.processInterface = {
         boolOp: 'unite', //unite, intersect, subtract, exclude, divide
         bool: function () {
-            let source = p.project.selectedItems;
-            let target = p.project.activeLayer;
-            let result = source[0].clone();
-            for (let i = 1; i < source.length; i++) {
-                let tmpresult  = result[p.processInterface.boolOp](source[i]);
-                result.replaceWith(tmpresult);
-            }
-            result.selected = false;
-            // unselect all
-            source.forEach(item => item.selected = false);
-            //remove selected items
-            if (p.Key.isDown(p.Key.alt)) {
-                for (let i = p.project.selectedItems.length - 1; i >= 0; i--) {
-                    p.project.selectedItems[i].remove();
+            let source = [...p.project.getItems({
+                selected: true,
+                class: p.Path
+            })];
+            let resultGroup = new p.Group({ name: 'results' });
+            // apply the selected bool operation to the source items, pairing every two consecutive items
+            for (let i = 0; i < source.length - 1; i++) {
+                let item1 = source[i];
+                for (let j = i+1; j < source.length; j++) {
+                    let item2 = source[j];
+                    let result = item1[p.processInterface.boolOp](item2);
+                    item1.name = 'p' + i;
+                    item2.name = 'p' + j;
+                    result.name = `${p.processInterface.boolOp}${i}-${j}`;
+                    result.reduce();
+                    //if the result is a path add it to resultGroup
+                    if (!(result instanceof p.CompoundPath) && !result.isEmpty() && (result.area > item1.area)) {
+                   
+                        // if ( (result.area > item1.area)) {
+                        resultGroup.addChild(result);
+                    }
+
                 }
             }
-            //add result to target layer
-            result.name = 'bool';
-            result.addTo(target);
 
-           // result.selected = true;
-            //result = square[operation](ring);
-            // if (source && target) {
-            //     let result = source.reduce(function (prev, current) {
-            //         return prev[p.processInterface.boolOp](current);
-            //     }, target);
-            //     result.name = "result";
-            //     result.selected = true;
-            //     result.blendMode = p.processInterface.blendMode;
+            // resultGroup.children.map(child => {
+            //     child.reduce();
+            //     child.addTo(resultGroup.parent);
+
+            // });
+            // if (!resultGroup.children.length) {
+            //     resultGroup.remove();
             // }
+
+
+
+
+
+
+
+
+
+
+
+
+
         },
 
         smooth: _ => {
@@ -407,9 +422,9 @@ function setupInterfaces() {
         prob4: 0.5,
         color5: '#888',
         prob5: 0.5,
-        palette: ['#000','#fff','#ff0','#0ff','#f0f','#888'],
+        palette: ['#000', '#fff', '#ff0', '#0ff', '#f0f', '#888'],
         lastIndex: 0,
-        colors: [], 
+        colors: [],
         colorWeights: [],
         build: function () {
             this.colors = [this.color0, this.color1, this.color2, this.color3, this.color4, this.color5];
@@ -483,7 +498,7 @@ function setupElements() {
     p.comp.bg = new p.Layer({ name: 'background' });
     p.comp.bg.name = 'background';
     p.comp.bg.locked = true;
-    p.project.addLayer(p.comp.bg); 
+    p.project.addLayer(p.comp.bg);
 
 
     p.comp.bg.type = 'color'; //['color','image','svg','json','none']; 
@@ -522,7 +537,7 @@ function setupElements() {
 function setupLayers() {
     // let layer = new p.Layer(); 
     // layer.name = "Layer 0"; 
-    
+
     p.blendModes = ['normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard- light', 'color-dodge', 'color-burn', 'darken', 'lighten', 'difference', 'exclusion', 'hue', 'saturation', 'luminosity', 'color', 'add', 'subtract', 'average', 'pin-light', 'negation', 'source-over', 'source-in', 'source-out', 'source-atop', 'destination-over', 'destination-in', 'destination-out', 'destination-atop', 'lighter', 'darker', 'copy', 'xor'];
 
     p.project.layerInterface = {
@@ -602,7 +617,7 @@ function setupTools() {
             selectedSegment = selectedPath = null;
             mouseDownPoint = e.point.clone();
             if (p.Key.isDown('q')) {
-               // if (tool.selectionPath) tool.selectionPath.remove();
+                // if (tool.selectionPath) tool.selectionPath.remove();
                 tool.selectionPath = new p.Path();
                 tool.selectionPath.strokeColor = 'red';
                 tool.selectionPath.strokeWidth = 1;
@@ -610,8 +625,8 @@ function setupTools() {
                 tool.selectionPath.add(e.point);
                 tool.selectionPath.name = 'selectionPath';
                 tool.selectionPath.removeOn({
-                    up:true,
-                    down:true
+                    up: true,
+                    down: true
                 })
                 // console.log('mouse down' + event.point.x + " " + event.point.y);
 
@@ -830,7 +845,7 @@ function setupTools() {
             mouseDownPoint = e.point;
             if (p.Key.isDown('b')) {
             } else if (p.Key.isDown('q')) {
-               // if (tool.selectionPath) tool.selectionPath.remove();
+                // if (tool.selectionPath) tool.selectionPath.remove();
                 tool.selectionPath = new p.Path();
                 tool.selectionPath.strokeColor = 'red';
                 tool.selectionPath.strokeWidth = 1;
@@ -838,8 +853,8 @@ function setupTools() {
                 tool.selectionPath.add(e.point);
                 tool.selectionPath.name = 'selectionPath';
                 tool.selectionPath.removeOn({
-                    up:true,
-                    down:true
+                    up: true,
+                    down: true
                 })
 
             } else {
@@ -905,7 +920,7 @@ function setupTools() {
                     }
 
                 });
-                
+
             }
             else {
                 mouseUpPoint = e.point;
@@ -1406,7 +1421,7 @@ function setupGUI() {
     guiPalette.add(p.paletteInterface, 'draw').onChange(_ => p.paletteInterface.draw(layer = p.comp.clipboard));
     guiPalette.add(p.paletteInterface, 'strokeChoice', ['black', 'white', 'random', 'color0', 'color1', 'color2', 'color3', 'color4', 'color5']);
 
-  
+
     gui.remember(p.paletteInterface);
 
     const guiProcess = gui.addFolder('Process')
