@@ -641,7 +641,19 @@ function setupTools() {
         }
 
         tool.onMouseDrag = e => {
-            if (p.Key.isDown('q')) {
+
+            //draw box selection if be is pressed
+            if (p.Key.isDown('b')) {
+                let b  = new p.Path.Rectangle(mouseDownPoint, e.point);
+                b.removeOn(
+                    {drag:true,
+                    move:true,
+                    up:true,}
+                )
+                b.strokeColor = 'red';
+                b.opacity = 0.2;
+
+            } else if (p.Key.isDown('q')) {
                 tool.selectionPath.add(e.point);
             } else if (p.Key.isDown('space')) {
                 const delta = e.point.subtract(p.view.viewToProject(tool.oldPointViewCoords));
@@ -713,11 +725,12 @@ function setupTools() {
             // if 'b' is down box select
             if (p.Key.isDown('b')) {
                 let rect = new Rectangle(mouseDownPoint, e.point);
-                let selected = p.project.getItemsInRect(rect);
-                selected.forEach(i => i.selected = true);
-            }
-            
-            if (p.Key.isDown('q')) {
+                p.project.activeLayer.children.map(i => {
+
+                    i.isInside(rect) ? i.selected = true : i.selected = false;
+                });
+
+            } else if (p.Key.isDown('q')) {
                 // if (e.item) {
                 tool.selectionPath.add(e.point);
                 tool.selectionPath.smooth();
