@@ -174,7 +174,7 @@ function setupInterfaces() {
             selectedPaths.forEach(item => item.selected = false);
 
             let resultGroup = new p.Group();
-            resultGroup.name = resultGroup.className+'_results';
+            resultGroup.name = resultGroup.className + '_results';
             // apply the selected bool operation to the source items, pairing every two consecutive items
             for (let i = 0; i < source.length - 1; i++) {
                 let item1 = source[i];
@@ -189,25 +189,24 @@ function setupInterfaces() {
                     result.name = `${result.className}_${p.processInterface.boolOp}${i}-${j}`;
                     result.reduce();
                     result.selected = true;
-                    if(result.className =='Path') {
-                        result.isEmpty()?result.remove():resultGroup.addChild(result.reduce());
-                     
-                    } else if (result.className =='CompoundPath') {
+                    if (result.className == 'Path') {
+                        result.isEmpty() ? result.remove() : resultGroup.addChild(result.reduce());
+
+                    } else if (result.className == 'CompoundPath') {
                         //count backwards to avoid indexing issues
                         for (let k = result.children.length - 1; k >= 0; k--) {
                             resultGroup.addChild(result.children[k]);
                         }
                         result.remove();
                         //result.children.map(item => resultGroup.addChild(item));
-                       // result.remove();
+                        // result.remove();
                     }
- 
+
 
                 }
             }
 
-            //count backwards to avoid indexing issues
-            //move group children to parent
+
 
             for (let i = resultGroup.children.length - 1; i >= 0; i--) {
                 resultGroup.children[i].addTo(resultGroup.parent);
@@ -215,7 +214,12 @@ function setupInterfaces() {
             if (!resultGroup.children.length) {
                 resultGroup.remove();
             }
-
+            if (p.Key.isDown('alt')) {
+                //count backwards to avoid indexing issues delete the source items
+                for (let i = source.length - 1; i >= 0; i--) {
+                    source[i].remove();
+                }
+            }
 
 
         },
