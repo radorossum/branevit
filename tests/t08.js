@@ -165,27 +165,38 @@ function setupInterfaces() {
     p.processInterface = {
         boolOp: 'unite', //unite, intersect, subtract, exclude, divide
         bool: function () {
-            let source = [...p.project.getItems({
+            let selectedPaths = p.project.getItems({
                 selected: true,
                 class: p.Path
-            })];
-            let resultGroup = new p.Group({ name: 'results' });
+
+            });
+            let source = [...selectedPaths];
+            selectedPaths.forEach(item => item.selected = false);
+
+            let resultGroup = new p.Group();
+            resultGroup.name = resultGroup.className+'_results';
             // apply the selected bool operation to the source items, pairing every two consecutive items
             for (let i = 0; i < source.length - 1; i++) {
                 let item1 = source[i];
-                for (let j = i+1; j < source.length; j++) {
+                for (let j = i + 1; j < source.length; j++) {
                     let item2 = source[j];
                     let result = item1[p.processInterface.boolOp](item2);
-                    item1.name = 'p' + i;
-                    item2.name = 'p' + j;
-                    result.name = `${p.processInterface.boolOp}${i}-${j}`;
+                    //set the item name to the item's class name
+                    //result.name = result.className;
+
+                    item1.name = `${item1.className}_ ${i}`;
+                    item2.name = `${item2.className}_ ${j}`;
+                    result.name = `${result.className}_${p.processInterface.boolOp}${i}-${j}`;
                     result.reduce();
-                    //if the result is a path add it to resultGroup
-                    if (!(result instanceof p.CompoundPath) && !result.isEmpty() && (result.area > item1.area)) {
-                   
-                        // if ( (result.area > item1.area)) {
+                    result.selected = true;
+                    if(result.className =='Path') {
                         resultGroup.addChild(result);
+                    } else if (result.className =='CompoundPath') {
+                        
+                        //result.children.map(item => resultGroup.addChild(item));
+                       // result.remove();
                     }
+ 
 
                 }
             }
@@ -198,16 +209,6 @@ function setupInterfaces() {
             // if (!resultGroup.children.length) {
             //     resultGroup.remove();
             // }
-
-
-
-
-
-
-
-
-
-
 
 
 
