@@ -11,11 +11,11 @@ window.onload = _ => {
     p.install(window);
 
     gui = new dat.GUI();
-
-    setupTools();
     setupElements();
-    setupLayers();
+    setupTools();
     setupInterfaces();
+    setupLayers();
+ 
     setupGUI();
 
 }
@@ -58,6 +58,7 @@ function setupInterfaces() {
         }
 
     }
+    
 
     // Actions
     p.actionInterface = {
@@ -89,7 +90,12 @@ function setupInterfaces() {
         //copy selection to target layer
         copy: _ => {
             p.comp.clipboard.removeChildren();
-            p.project.selectedItems.map(item => item.copyTo(p.comp.clipboard));
+            p.project.selectedItems.map(item => {
+                item.copyTo(p.comp.clipboard);
+                item.selected = false;
+                
+            });
+            p.comp.clipboard.selected = false;
         },
         cut: _ => {
             p.comp.clipboard.removeChildren();
@@ -102,8 +108,8 @@ function setupInterfaces() {
         },
         paste: _ => {
             p.comp.clipboard.children.map(item => item.copyTo(p.project.activeLayer))
-            p.comp.clipboard.removeChildren();
-            p.actionInterface.copy();
+           // p.comp.clipboard.removeChildren();
+          //  p.actionInterface.copy();
             // for(let i=0; i<p.comp.clipboard.children.length; i++) {
             //     let item = p.comp.clipboard.children[i];
             //     //add item to target layer
@@ -164,10 +170,12 @@ function setupInterfaces() {
             let target = p.project.activeLayer;
             let result = source[0].clone();
             for (let i = 1; i < source.length; i++) {
-                let item = source[i];
-                result = result[p.processInterface.boolOp](item);
+                let tmpresult  = result[p.processInterface.boolOp](source[i]);
+                result.replaceWith(tmpresult);
             }
             result.selected = false;
+            // unselect all
+            source.forEach(item => item.selected = false);
             //remove selected items
             if (p.Key.isDown(p.Key.alt)) {
                 for (let i = p.project.selectedItems.length - 1; i >= 0; i--) {
@@ -175,8 +183,10 @@ function setupInterfaces() {
                 }
             }
             //add result to target layer
+            result.name = 'bool';
             result.addTo(target);
-            result.selected = true;
+
+           // result.selected = true;
             //result = square[operation](ring);
             // if (source && target) {
             //     let result = source.reduce(function (prev, current) {
@@ -385,22 +395,21 @@ function setupInterfaces() {
     p.paletteInterface = {
         coolors: '000-fff-ff0-0ff-f0f',
         ncolors: 5,
-        color0: '#000000',
+        color0: '#000',
         prob0: .5,
-        color1: '#ffffff',
+        color1: '#fff',
         prob1: .5,
-        color2: '#333',
-        prob2: 0.,
-        color3: '#666',
-        prob3: 0.,
-        color4: '#999',
-        prob4: 0.,
-        color5: '#bbb',
-        prob5: 0.,
-        palette: ['#000', '#fff'],
+        color2: '#ff0',
+        prob2: 0.5,
+        color3: '#0ff',
+        prob3: 0.5,
+        color4: '#f0f',
+        prob4: 0.5,
+        color5: '#888',
+        prob5: 0.5,
+        palette: ['#000','#fff','#ff0','#0ff','#f0f','#888'],
         lastIndex: 0,
-        colors: [],
-
+        colors: [], 
         colorWeights: [],
         build: function () {
             this.colors = [this.color0, this.color1, this.color2, this.color3, this.color4, this.color5];
@@ -462,8 +471,8 @@ function setupInterfaces() {
             url = url || this.coolors;
             return url.split('/').pop().split('-').map(_ => '#' + _);
         }
-
     }
+    // p.paletteInterface.setCoolors(p.paletteInterface.coolors);
 
 }
 
@@ -471,10 +480,10 @@ function setupElements() {
     p.comp = {};
 
     // background layer
-    p.comp.bg = new paper.Layer({ name: 'background' });
+    p.comp.bg = new p.Layer({ name: 'background' });
     p.comp.bg.name = 'background';
     p.comp.bg.locked = true;
-    p.project.addLayer(p.comp.bg);
+    p.project.addLayer(p.comp.bg); 
 
 
     p.comp.bg.type = 'color'; //['color','image','svg','json','none']; 
@@ -511,8 +520,9 @@ function setupElements() {
 }
 
 function setupLayers() {
-    let layer = p.project.activeLayer;
-    layer.name = "Layer 0";
+    // let layer = new p.Layer(); 
+    // layer.name = "Layer 0"; 
+    
     p.blendModes = ['normal', 'multiply', 'screen', 'overlay', 'soft-light', 'hard- light', 'color-dodge', 'color-burn', 'darken', 'lighten', 'difference', 'exclusion', 'hue', 'saturation', 'luminosity', 'color', 'add', 'subtract', 'average', 'pin-light', 'negation', 'source-over', 'source-in', 'source-out', 'source-atop', 'destination-over', 'destination-in', 'destination-out', 'destination-atop', 'lighter', 'darker', 'copy', 'xor'];
 
     p.project.layerInterface = {
@@ -561,7 +571,9 @@ function setupLayers() {
         style: '',
     }
     // Create a new Layer
-    p.project.layers['Layer 0'].activate();
+    // p.project.layers['Layer 0'].activate();
+    //layer.bringToFront(); 
+    p.project.layerInterface.add();
 
 }
 
@@ -582,14 +594,7 @@ function setupTools() {
         let selectedSegment, selectedPath;
         let movePath = false;
         let mouseDownPoint = null;
-
-        //   tool.minDistance = 10;
-
-        tool.selectionPath = new p.Path();
-        tool.selectionPath.strokeColor = 'red';
-        tool.selectionPath.strokeWidth = 1;
-        //dashed line for selection
-        tool.selectionPath.dashArray = [5, 5];
+        tool.selectionPath = null;
         tool.oldPointViewCoords = null;
 
 
@@ -597,12 +602,17 @@ function setupTools() {
             selectedSegment = selectedPath = null;
             mouseDownPoint = e.point.clone();
             if (p.Key.isDown('q')) {
-                tool.selectionPath.remove();
+               // if (tool.selectionPath) tool.selectionPath.remove();
                 tool.selectionPath = new p.Path();
                 tool.selectionPath.strokeColor = 'red';
                 tool.selectionPath.strokeWidth = 1;
                 tool.selectionPath.dashArray = [5, 5];
                 tool.selectionPath.add(e.point);
+                tool.selectionPath.name = 'selectionPath';
+                tool.selectionPath.removeOn({
+                    up:true,
+                    down:true
+                })
                 // console.log('mouse down' + event.point.x + " " + event.point.y);
 
             } else if (p.Key.isDown('space')) {
@@ -800,7 +810,7 @@ function setupTools() {
                 //     p.project.selectedItems.forEach(i => i.selected = false);
 
             }//
-            tool.selectionPath.remove();
+            //tool.selectionPath.remove();
         }
     })();
 
@@ -813,27 +823,26 @@ function setupTools() {
         let selectionPath;
         let mouseDownPoint, mouseUpPoint;
 
-        tool.selectionPath = new p.Path();
-        tool.selectionPath.strokeColor = 'red';
-        tool.selectionPath.strokeWidth = 1;
-        //dashed line for selection
-        tool.selectionPath.dashArray = [5, 5];
+        tool.selectionPath = null;
         tool.oldPointViewCoords = null;
 
         tool.onMouseDown = function (e) {
             mouseDownPoint = e.point;
             if (p.Key.isDown('b')) {
             } else if (p.Key.isDown('q')) {
-                tool.selectionPath.remove();
+               // if (tool.selectionPath) tool.selectionPath.remove();
                 tool.selectionPath = new p.Path();
                 tool.selectionPath.strokeColor = 'red';
                 tool.selectionPath.strokeWidth = 1;
                 tool.selectionPath.dashArray = [5, 5];
                 tool.selectionPath.add(e.point);
-
+                tool.selectionPath.name = 'selectionPath';
+                tool.selectionPath.removeOn({
+                    up:true,
+                    down:true
+                })
 
             } else {
-
                 path = new p.Path();
                 // path.strokeColor = paramPalette.randomColor();
                 // path.strokeColor = p.Color.random();
@@ -882,6 +891,7 @@ function setupTools() {
                 tool.selectionPath.smooth();
                 tool.selectionPath.closed = true;
                 tool.selectionPath.simplify();
+                //tool.selectionPath.remove();
                 p.project.activeLayer.children.map(c => {
                     let selected = false;
                     if (c.segments) {
@@ -895,7 +905,7 @@ function setupTools() {
                     }
 
                 });
-                tool.selectionPath.remove();
+                
             }
             else {
                 mouseUpPoint = e.point;
@@ -1396,7 +1406,7 @@ function setupGUI() {
     guiPalette.add(p.paletteInterface, 'draw').onChange(_ => p.paletteInterface.draw(layer = p.comp.clipboard));
     guiPalette.add(p.paletteInterface, 'strokeChoice', ['black', 'white', 'random', 'color0', 'color1', 'color2', 'color3', 'color4', 'color5']);
 
-
+  
     gui.remember(p.paletteInterface);
 
     const guiProcess = gui.addFolder('Process')
