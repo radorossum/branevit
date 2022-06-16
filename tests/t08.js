@@ -27,6 +27,7 @@ window.onresize = paper.onResize = function () {
 
 
 function setupInterfaces() {
+    p.bools = ['unite', 'intersect', 'subtract', 'exclude', 'divide'];
     p.brushInterface = {
         strokeMethod: 'paletternd', //fixed, random, none, color0, color1, paletternd, paletteindex
         fillMethod: 'none',
@@ -157,6 +158,26 @@ function setupInterfaces() {
     }
 
     p.processInterface = {
+        boolOp: 'unite', //unite, intersect, subtract, exclude, divide
+        bool:function() {
+            let source = p.project.selectedItems;
+            let target = p.project.activeLayer;
+            let result = source[0].clone();
+            for(let i=1; i<source.length; i++) {
+                let item = source[i];
+                result = result[p.processInterface.boolOp](item);
+            }
+            //result = square[operation](ring);
+            // if (source && target) {
+            //     let result = source.reduce(function (prev, current) {
+            //         return prev[p.processInterface.boolOp](current);
+            //     }, target);
+            //     result.name = "result";
+            //     result.selected = true;
+            //     result.blendMode = p.processInterface.blendMode;
+            // }
+        },
+
         smooth: _ => {
             let selected = p.project.getItems({ class: Path, selected: true });
             selected.map(v => v.smooth({
@@ -1369,6 +1390,8 @@ function setupGUI() {
     gui.remember(p.paletteInterface);
 
     const guiProcess = gui.addFolder('Process')
+    guiProcess.add(p.processInterface,'boolOp',p.bools);
+    guiProcess.add(p.processInterface,'bool');
     guiProcess.add(p.processInterface, 'smooth');
     guiProcess.add(p.processInterface, 'smoothness', -10., 10., 0.01);
     guiProcess.add(p.processInterface, 'smoothType', ['geometric', 'catmull-rom', 'continuous', 'asymmetric']);
