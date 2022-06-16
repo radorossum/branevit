@@ -190,9 +190,14 @@ function setupInterfaces() {
                     result.reduce();
                     result.selected = true;
                     if(result.className =='Path') {
-                        resultGroup.addChild(result);
+                        result.isEmpty()?result.remove():resultGroup.addChild(result.reduce());
+                     
                     } else if (result.className =='CompoundPath') {
-                        
+                        //count backwards to avoid indexing issues
+                        for (let k = result.children.length - 1; k >= 0; k--) {
+                            resultGroup.addChild(result.children[k]);
+                        }
+                        result.remove();
                         //result.children.map(item => resultGroup.addChild(item));
                        // result.remove();
                     }
@@ -201,14 +206,15 @@ function setupInterfaces() {
                 }
             }
 
-            // resultGroup.children.map(child => {
-            //     child.reduce();
-            //     child.addTo(resultGroup.parent);
+            //count backwards to avoid indexing issues
+            //move group children to parent
 
-            // });
-            // if (!resultGroup.children.length) {
-            //     resultGroup.remove();
-            // }
+            for (let i = resultGroup.children.length - 1; i >= 0; i--) {
+                resultGroup.children[i].addTo(resultGroup.parent);
+            }
+            if (!resultGroup.children.length) {
+                resultGroup.remove();
+            }
 
 
 
