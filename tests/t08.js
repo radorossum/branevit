@@ -26,7 +26,6 @@ window.onresize = paper.onResize = function () {
 }
 
 
-
 function setupInterfaces() {
     p.brushInterface = {
         strokeMethod: 'paletternd', //fixed, random, none, color0, color1, paletternd, paletteindex
@@ -209,10 +208,9 @@ function setupInterfaces() {
                         // console.log(newSegments);
 
                         let newpath = new p.Path({ segments: newSegments });
-                        newpath.strokeColor = path.strokeColor;//.random();
-                        // newpath.fillColor = p.Color.random();
-                        newpath.closed = path.closed;
-                        newpath.selected = true;
+                        newpath.copyAttributes(path);
+
+                        //newpath.selected = true;
                         if (p.Key.isDown('alt')) {
                             path.remove();
                         }
@@ -832,9 +830,7 @@ function setupTools() {
             } else if (p.Key.isDown('q')) { //lasso selection
                 tool.selectionPath.add(e.point);
             } else {
-                if (!e.modifiers.shift) {
-                    path.add(e.point);
-                }
+                path.add(e.point);          
             }
         }
 
@@ -1600,7 +1596,7 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'select');
     guiActionFolder.add(p.actionInterface, 'selectProbability', 0., 1., 0.01);
     guiActionFolder.add(p.actionInterface, 'palettize');
-
+    guiActionFolder.add(p.actionInterface,'blendModeRnd');
     ///////////////////////////////////////////
     // const guiColorFlder = gui.addFolder('Colors');
     // guiColorFlder.addColor(p.colorInterface, 'color1');
