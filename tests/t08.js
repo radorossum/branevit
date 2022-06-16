@@ -159,14 +159,24 @@ function setupInterfaces() {
 
     p.processInterface = {
         boolOp: 'unite', //unite, intersect, subtract, exclude, divide
-        bool:function() {
+        bool: function () {
             let source = p.project.selectedItems;
             let target = p.project.activeLayer;
             let result = source[0].clone();
-            for(let i=1; i<source.length; i++) {
+            for (let i = 1; i < source.length; i++) {
                 let item = source[i];
                 result = result[p.processInterface.boolOp](item);
             }
+            result.selected = false;
+            //remove selected items
+            if (p.Key.isDown(p.Key.alt)) {
+                for (let i = p.project.selectedItems.length - 1; i >= 0; i--) {
+                    p.project.selectedItems[i].remove();
+                }
+            }
+            //add result to target layer
+            result.addTo(target);
+            result.selected = true;
             //result = square[operation](ring);
             // if (source && target) {
             //     let result = source.reduce(function (prev, current) {
@@ -851,7 +861,7 @@ function setupTools() {
             } else if (p.Key.isDown('q')) { //lasso selection
                 tool.selectionPath.add(e.point);
             } else {
-                path.add(e.point);          
+                path.add(e.point);
             }
         }
 
@@ -1390,8 +1400,8 @@ function setupGUI() {
     gui.remember(p.paletteInterface);
 
     const guiProcess = gui.addFolder('Process')
-    guiProcess.add(p.processInterface,'boolOp',p.bools);
-    guiProcess.add(p.processInterface,'bool');
+    guiProcess.add(p.processInterface, 'boolOp', p.bools);
+    guiProcess.add(p.processInterface, 'bool');
     guiProcess.add(p.processInterface, 'smooth');
     guiProcess.add(p.processInterface, 'smoothness', -10., 10., 0.01);
     guiProcess.add(p.processInterface, 'smoothType', ['geometric', 'catmull-rom', 'continuous', 'asymmetric']);
@@ -1619,7 +1629,7 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'select');
     guiActionFolder.add(p.actionInterface, 'selectProbability', 0., 1., 0.01);
     guiActionFolder.add(p.actionInterface, 'palettize');
-    guiActionFolder.add(p.actionInterface,'blendModeRnd');
+    guiActionFolder.add(p.actionInterface, 'blendModeRnd');
     ///////////////////////////////////////////
     // const guiColorFlder = gui.addFolder('Colors');
     // guiColorFlder.addColor(p.colorInterface, 'color1');
