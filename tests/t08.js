@@ -160,7 +160,7 @@ function setupInterfaces() {
     p.processInterface = {
         smooth: _ => {
             let selected = p.project.getItems({ class: Path, selected: true });
-            selected.map(v=>v.smooth({
+            selected.map(v => v.smooth({
                 type: p.processInterface.smoothType,
                 factor: p.processInterface.smoothness
             }));
@@ -179,7 +179,7 @@ function setupInterfaces() {
         smoothType: 'geometric',
         simplify: _ => {
             let selected = p.project.getItems({ class: Path, selected: true });
-          
+
             selected.map(
                 v => {
                     if (v instanceof p.Path) {
@@ -261,7 +261,7 @@ function setupInterfaces() {
                     let c1 = to.strokeColor.multiply(p.processInterface.interpolation);
                     let c2 = from.strokeColor.multiply(1. - p.processInterface.interpolation);
                     tmp.strokeColor = c1.add(c2);
-                 }
+                }
                 if (p.Key.isDown('alt')) {
                     to.remove();
                     from.remove();
@@ -327,7 +327,7 @@ function setupInterfaces() {
             // });
         },
         reverse: _ => {
-            p.project.selectedItems.map(v =>v.reverse());
+            p.project.selectedItems.map(v => v.reverse());
         },
         //remove fill
         removeFill: _ => {
@@ -337,8 +337,8 @@ function setupInterfaces() {
         fitToView: _ => {
             p.project.selectedItems.map(i => i.fitBounds(p.view.bounds))
         },
-        fitToLast: _=>{
-            let last = p.project.selectedItems[p.project.selectedItems.length-1];
+        fitToLast: _ => {
+            let last = p.project.selectedItems[p.project.selectedItems.length - 1];
             p.project.selectedItems.map(i => i.fitBounds(last.bounds));
         }
 
@@ -547,7 +547,7 @@ function setupTools() {
             segments: true,
             stroke: true,
             fill: true,
-            tolerance: 10
+            tolerance: 20
         };
 
         let selectedSegment, selectedPath;
@@ -556,7 +556,7 @@ function setupTools() {
 
         //   tool.minDistance = 10;
 
-        tool.selectionPath = new Path();
+        tool.selectionPath = new p.Path();
         tool.selectionPath.strokeColor = 'red';
         tool.selectionPath.strokeWidth = 1;
         //dashed line for selection
@@ -569,7 +569,7 @@ function setupTools() {
             mouseDownPoint = e.point.clone();
             if (p.Key.isDown('q')) {
                 tool.selectionPath.remove();
-                tool.selectionPath = new Path();
+                tool.selectionPath = new p.Path();
                 tool.selectionPath.strokeColor = 'red';
                 tool.selectionPath.strokeWidth = 1;
                 tool.selectionPath.dashArray = [5, 5];
@@ -641,19 +641,19 @@ function setupTools() {
         }
 
         tool.onMouseDrag = e => {
-
-            //draw box selection if be is pressed
-            if (p.Key.isDown('b')) {
-                let b  = new p.Path.Rectangle(mouseDownPoint, e.point);
+            if (p.Key.isDown('b')) { //box selection
+                let b = new p.Path.Rectangle(mouseDownPoint, e.point);
                 b.removeOn(
-                    {drag:true,
-                    move:true,
-                    up:true,}
+                    {
+                        drag: true,
+                        move: true,
+                        up: true,
+                    }
                 )
                 b.strokeColor = 'red';
-                b.opacity = 0.2;
+                b.dashArray = [5, 5];
 
-            } else if (p.Key.isDown('q')) {
+            } else if (p.Key.isDown('q')) { //lasso selection
                 tool.selectionPath.add(e.point);
             } else if (p.Key.isDown('space')) {
                 const delta = e.point.subtract(p.view.viewToProject(tool.oldPointViewCoords));
@@ -726,8 +726,12 @@ function setupTools() {
             if (p.Key.isDown('b')) {
                 let rect = new Rectangle(mouseDownPoint, e.point);
                 p.project.activeLayer.children.map(i => {
-
-                    i.isInside(rect) ? i.selected = true : i.selected = false;
+                    if (i.isInside(rect)) {
+                        e.modifiers.alt ? i.selected = !i.selected : i.selected = true;
+                    } else {
+                        if (!e.modifiers.shift) i.selected = false;
+                    }
+                    // i.isInside(rect) ? i.selected = true : i.selected = false;
                 });
 
             } else if (p.Key.isDown('q')) {
@@ -780,37 +784,111 @@ function setupTools() {
         let selectionPath;
         let mouseDownPoint, mouseUpPoint;
 
+        tool.selectionPath = new p.Path();
+        tool.selectionPath.strokeColor = 'red';
+        tool.selectionPath.strokeWidth = 1;
+        //dashed line for selection
+        tool.selectionPath.dashArray = [5, 5];
+        tool.oldPointViewCoords = null;
+
         tool.onMouseDown = function (e) {
-            path = new p.Path();
-            // path.strokeColor = paramPalette.randomColor();
-            // path.strokeColor = p.Color.random();
-            path.strokeColor = p.brushInterface.getStrokeColor();
-            path.fillColor = p.brushInterface.getFillColor();
-            path.strokeWidth = p.brushInterface.strokeWidth;
             mouseDownPoint = e.point;
-            path.add(e.point);
+            if (p.Key.isDown('b')) {
+            } else if (p.Key.isDown('q')) {
+                tool.selectionPath.remove();
+                tool.selectionPath = new p.Path();
+                tool.selectionPath.strokeColor = 'red';
+                tool.selectionPath.strokeWidth = 1;
+                tool.selectionPath.dashArray = [5, 5];
+                tool.selectionPath.add(e.point);
+
+
+            } else {
+
+                path = new p.Path();
+                // path.strokeColor = paramPalette.randomColor();
+                // path.strokeColor = p.Color.random();
+                path.strokeColor = p.brushInterface.getStrokeColor();
+                path.fillColor = p.brushInterface.getFillColor();
+                path.strokeWidth = p.brushInterface.strokeWidth;
+
+                path.add(e.point);
+            }
         }
 
-        tool.onMouseDrag = e => path.add(e.point);
+        tool.onMouseDrag = e => {
+            if (p.Key.isDown('b')) {
+                let b = new p.Path.Rectangle(mouseDownPoint, e.point);
+                b.removeOn(
+                    {
+                        drag: true,
+                        move: true,
+                        up: true,
+                    }
+                )
+                b.strokeColor = 'red';
+                b.dashArray = [5, 5];
+
+            } else if (p.Key.isDown('q')) { //lasso selection
+                tool.selectionPath.add(e.point);
+            } else {
+                if (!e.modifiers.shift) {
+                    path.add(e.point);
+                }
+            }
+        }
 
         tool.onMouseUp = function (e) {
-            mouseUpPoint = e.point;
-            path.add(mouseUpPoint);
+            if (p.Key.isDown('b')) {
+                let rect = new Rectangle(mouseDownPoint, e.point);
+                p.project.activeLayer.children.map(i => {
+                    if (i.isInside(rect)) {
+                        e.modifiers.alt ? i.selected = !i.selected : i.selected = true;
+                    } else {
+                        if (!e.modifiers.shift) i.selected = false;
+                    }
+                    // i.isInside(rect) ? i.selected = true : i.selected = false;
+                });
+            } else if (p.Key.isDown('q')) {
+                // if (e.item) {
+                tool.selectionPath.add(e.point);
+                tool.selectionPath.smooth();
+                tool.selectionPath.closed = true;
+                tool.selectionPath.simplify();
+                p.project.activeLayer.children.map(c => {
+                    let selected = false;
+                    if (c.segments) {
+                        c.segments.map(s => {
+                            selected = selected || tool.selectionPath.contains(s.point);
+                            if (selected) {
+                                c.selected = true;
+                                return;
+                            }
+                        });
+                    }
 
-            if (e.modifiers.alt) {
-                path.closed = true;
+                });
+                tool.selectionPath.remove();
             }
-            if (e.modifiers.meta)
-                // path.fillColor = p.Color.random();
-                path.fillColor = p.brushInterface.getFillColor();
+            else {
+                mouseUpPoint = e.point;
+                path.add(mouseUpPoint);
 
-            if (!e.modifiers.shift) {
-                path.smooth();
-                path.simplify();
-                //path.selected = true;
+                if (e.modifiers.alt) {
+                    path.closed = true;
+                }
+                if (e.modifiers.meta)
+                    // path.fillColor = p.Color.random();
+                    path.fillColor = p.brushInterface.getFillColor();
+
+                if (!e.modifiers.shift) {
+                    path.smooth();
+                    path.simplify();
+                    //path.selected = true;
+                }
+
+                path = null;
             }
-
-            path = null;
         }
     })();
 
@@ -1313,7 +1391,7 @@ function setupGUI() {
     guiProcess.add(p.processInterface, 'removeFill');
     guiProcess.add(p.processInterface, 'fitToView');
     guiProcess.add(p.processInterface, 'fitToLast');
-    guiProcess.add(p.processInterface,'reverse');
+    guiProcess.add(p.processInterface, 'reverse');
 
     ///////////////////////////////////////////
     const guiIOFolder = gui.addFolder('Import/Export');
