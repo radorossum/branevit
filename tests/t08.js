@@ -46,12 +46,58 @@ function setupInterfaces() {
         strokeColor: '#000',
         fillColor: '#fff',
         strokeWidth: 1,
-        getStrokeColor: _ => {
+        opacity: 1.,
+        blendMode: 'normal',
+
+        getStrokeColor: function () {
             return p.brushInterface[p.brushInterface.strokeMethod]();
         },
-        getFillColor: _ => {
+        getFillColor: function () {
             return p.brushInterface[p.brushInterface.fillMethod]();
         },
+        getStrokeWidth: function () {
+            return p.brushInterface.strokeWidth;
+        },
+        getOpacity: function () {
+            return p.brushInterface.opacity;
+        },
+        updateOpacity: function () {
+            let selection = p.project.getItems({
+                selected: true,
+                class: p.PathItem
+            });
+            selection.forEach(function (item) {
+                item.opacity = p.brushInterface.getOpacity();
+            });
+        },
+        updateFillColor: function () {
+            let selection = p.project.getItems({
+                selected: true,
+                class: p.PathItem
+            });
+            selection.forEach(function (item) {
+                item.fillColor = p.brushInterface.getFillColor();
+            });
+        },
+        updateStrokeColor: function () {
+            let selection = p.project.getItems({
+                selected: true,
+                class: p.PathItem
+            });
+            selection.forEach(function (item) {
+                item.strokeColor = p.brushInterface.getStrokeColor();
+            });
+        },
+        updateStrokeWidth: function () {
+            let selection = p.project.getItems({
+                selected: true,
+                class: p.PathItem
+            });
+            selection.forEach(function (item) {
+                item.strokeWidth = p.brushInterface.strokeWidth;
+            });
+        },
+
         random: _ => { return p.Color.random() },
         fixed: _ => { return p.brushInterface.strokeColor },
         none: _ => { return null },
@@ -178,53 +224,7 @@ function setupInterfaces() {
                 }
             );
         },
-        normalGrow: function (modSource = Math.random, modScale = 10., modBias = 10.) {
-            // randomize path by displacing each segment along the normal at that location
-            // get path items
-            let paths = p.project.getItems({
-                type: 'path',
-                selected: true
-            });
-            // for each path iterate over segments
-            paths.forEach(function (path) {
-                let marks = new p.Path();
-                //let norms = new p.CompoundPath();
-                let norms = new p.Path();
-                norms.copyAttributes(path);
-                norms.strokeColor = p.paletteInterface.randomColor();
-                norms.fillColor = p.paletteInterface.randomColor();
-                marks.copyAttributes(path);
-                marks.strokeColor = p.paletteInterface.randomColor();
-                path.segments.forEach(function (segment) {
-                    let offset = path.getOffsetOf(segment.point);
-                    let normal = path.getNormalAt(offset);
-                    let displaced = segment.point.add(normal.multiply(modSource() * modScale + modBias));
-                    marks.add(displaced);
-                    //norms.addChild(new p.Path.Line(segment.point, displaced));
-                    norms.add(segment.point, displaced, segment.point.add(normal.rotate(90)));
 
-                });
-                if (marks.className == 'Path') {
-                    marks.closed = path.closed;
-                    if (p.tools.autoFlatten) marks.flatten(p.tools.flatness);
-                    if (p.tools.autoSimplify) marks.simplify(p.tools.simplicity);
-                    if (p.tools.autoResample) marks.resample(p.tools.samples);
-                    if (p.tools.autoSmooth && !marks.intersects(marks)) marks.smooth({ type: p.tools.smoothType, factor: p.tools.smoothness });
-                    path.parent.addChild(marks);
-                } else {
-                    marks.remove();
-                }
-                path.selected = false;
-                
-                let normGrow = marks['subtract'](path);
-                if (normGrow.type == 'path') {
-                    // normGrow.smooth({ type: p.tools.smoothType, factor: p.tools.smoothFactor });
-                    // path.parent.addChild(normGrow); 
-                }
-                norms.remove();
-            });
-
-        },
 
 
     }
@@ -481,11 +481,71 @@ function setupInterfaces() {
         fitToLast: _ => {
             let last = p.project.selectedItems[p.project.selectedItems.length - 1];
             p.project.selectedItems.map(i => i.fitBounds(last.bounds));
-        }
+        },
+        normalGrow: function (modSource = Math.random, modScale = 10., modBias = 10.) {
+            // randomize path by displacing each segment along the normal at that location
+            // get path items
+            let paths = p.project.getItems({
+                type: 'path',
+                selected: true
+            });
+            // for each path iterate over segments
+            paths.forEach(function (path) {
+                //let marks = new p.Path();
+
+                // marks.copyAttributes(path);
+                // marks.strokeColor = p.paletteInterface.randomColor();
+                //let band = new p.CompoundPath();
+                let band = new p.Path();
+                band.copyAttributes(path);
+                band.segments = [];
+                band.strokeColor = p.paletteInterface.randomColor();
+                // band.fillColor = p.paletteInterface.randomColor();
+
+                path.segments.forEach(function (segment) {
+                    let offset = path.getOffsetOf(segment.point);
+                    let normal = path.getNormalAt(offset);
+                    let displaced = segment.point.add(normal.multiply(modSource() * modScale + modBias)).clone();
+                    // marks.add(displaced);
+                    //band.addChild(new p.Path.Line(segment.point, displaced));
+                    // band.add(segment.point.clone(), displaced, segment.point.add(normal.rotate(90)));
+                    band.add(displaced);
+
+                });
+                // if (marks.className == 'Path') {
+                //     marks.closed = path.closed;
+                //     if (p.tools.autoFlatten) marks.flatten(p.tools.flatness);
+                //     if (p.tools.autoSimplify) marks.simplify(p.tools.simplicity);
+                //     if (p.tools.autoResample) marks.resample(p.tools.samples);
+                //     if (p.tools.autoSmooth && !marks.intersects(marks)) marks.smooth({ type: p.tools.smoothType, factor: p.tools.smoothness });
+                //     path.parent.addChild(marks);
+                // } else {
+                //     marks.remove();
+                // }
+                path.selected = false;
+
+                // let normGrow = band['exclude'](path);
+                // if (normGrow.type == 'path') {
+                //     normGrow.smooth({ type: p.tools.smoothType, factor: p.tools.smoothFactor });
+                //     path.parent.addChild(normGrow); 
+                // }
+                // band.remove();
+                if (band && !band.isEmpty()) {
+                    band.closed = path.closed;
+                    band.smooth({ type: p.tools.smoothType, factor: p.tools.smoothFactor });
+
+                    path.parent.addChild(band);
+                } else {
+                    band.remove();
+                }
+            });
+
+        },
 
 
     }
 
+    //////////////////////////////////////////////////////////////////////////////
     p.sourceInterface = {
         type: 'paint', //paint, gradients, palette, reference
     }
@@ -494,6 +554,7 @@ function setupInterfaces() {
 
     }
 
+    /////////////////////////////////////////////////////
     p.paletteInterface = {
         coolors: '000-fff-ff0-0ff-f0f',
         ncolors: 5,
@@ -690,12 +751,12 @@ function setupTools() {
     p.tools.autoClose = false;
     p.tools.autoSmooth = true;
     p.tools.smoothness = 0.5;
-    p.tools.smoothType = 'geometric';
+    p.tools.smoothType = 'geometric';//'geometric', 'catmull-rom', 'continuous', 'asymmetric'
     p.tools.autoSimplify = true;
     p.tools.simplicity = 0.5;
     p.tools.autoFlatten = false;
     p.tools.flatness = 0.;
-    p.tools.autoResample = false;
+    p.tools.autoResample = true;
     p.tools.samples = 10;
 
     (_ => {
@@ -1057,9 +1118,9 @@ function setupTools() {
                         if (p.tools.autoFlatten) path.flatten(p.tools.flatness);
                         if (p.tools.autoSimplify) path.simplify(p.tools.simplicity);
                         if (p.tools.autoResample) path.resample(p.tools.samples);
-                        if (p.tools.autoSmooth) path.smooth({ type: p.tools.smoothType, factor: p.tools.smoothness });
+                        if (path.segments.length > 2 && p.tools.autoSmooth) path.smooth({ type: p.tools.smoothType, factor: p.tools.smoothness });
 
-
+                        p
                         //path.selected = true; 
                     }
 
@@ -1341,23 +1402,39 @@ function setupGUI() {
     guiToolFolder.add(p.tools, 'autoResample');
     guiToolFolder.add(p.tools, 'samples', 2, 1000, 1);
 
-    guiToolFolder.open();
+    //guiToolFolder.open();
 
     //////////////////////////////////////////////
     const guiBrushFolder = gui.addFolder('Brush');
     guiBrushFolder.add(p.brushInterface, 'strokeMethod', ['fixed', 'random', 'none', 'paletternd', 'paletteindex']);
     guiBrushFolder.add(p.brushInterface, 'fillMethod', ['fixed', 'random', 'none', 'paletternd', 'paletteindex']);
     guiBrushFolder.addColor(p.brushInterface, 'strokeColor');
+    guiBrushFolder.add(p.brushInterface, 'updateStrokeColor');
     guiBrushFolder.addColor(p.brushInterface, 'fillColor');
+    guiBrushFolder.add(p.brushInterface, 'updateFillColor');
     guiBrushFolder.add(p.brushInterface, 'strokeWidth', 0., 100., 0.1);
-
-
+    guiBrushFolder.add(p.brushInterface, 'updateStrokeWidth');
+    guiBrushFolder.add(p.brushInterface, 'opacity', 0., 1., 0.01);
+    guiBrushFolder.add(p.brushInterface, 'updateOpacity');
+    guiBrushFolder.add(p.brushInterface, 'blendMode', p.blendModes)
+        .onChange(_ => p.project.selectedItems.forEach(item=>item.blendMode=_))
+        .listen();
     //////////////////////////////////////////////
 
     const guiLayerFolder = gui.addFolder('Layers');
     //add button to add a new layer
+    guiLayerFolder.add({
+        layerPanel: _ => paperjsLayersPanel.create({
+            title: '', draggable: true
+        })
+    }, 'layerPanel').name('layer panel');
 
-    let guiUpdateLayerName = (name) => {
+    let guiCurrentLayer = guiLayerFolder
+        .add(p.project.layerInterface, 'current',
+            p.project.layers.map(l => l.name)).onFinishChange(guiUpdateLayerName).listen();
+
+
+    function guiUpdateLayerName(name) {
         let l = p.project.layers.find(l => l.name === name);
         l.activate();
         p.project.layerInterface.name = p.project.activeLayer.name;
@@ -1378,10 +1455,6 @@ function setupGUI() {
 
             p.project.layerInterface.current = p.project.activeLayer.name;
             guiUpdateLayerName(p.project.layerInterface.current);
-            //guiLayerBlendMode.setValue(p.project.activeLayer.blendMode);
-            // guiLayerBlendMode.updateDisplay();
-            // console.log(p.project.activeLayer.name);
-
 
         };
     guiLayerFolder.add(p.project.layerInterface, 'add').onFinishChange(guiUpdateLayerList);
@@ -1401,6 +1474,9 @@ function setupGUI() {
             guiLayerBlendMode.updateDisplay();
         }).listen();
     let guiLayerOpacity = guiLayerFolder.add(p.project.layerInterface, 'opacity', 0., 1.).onChange(_ => p.project.activeLayer.opacity = _).listen();
+    p.project.layerInterface.current = p.project.activeLayer.name;
+    p.project.layerInterface.name = p.project.activeLayer.name;
+
     // guiLayerFolder.add(p.project.layerInterface, 'locked')
     //     .onChange(_ => p.project.activeLayer.locked = _);
     // guiLayerFolder.add(p.project.layerInterface, 'visible')
@@ -1408,28 +1484,7 @@ function setupGUI() {
     // guiLayerFolder.add(p.project.layerInterface, 'selected')
     //     .onChange(_ => p.project.activeLayer.selected = _);
 
-    // guiLayerFolder.add()   
-    //    guiLayerFolder.add(p.project.layerInterface, 'style', p.styles).onChange(_ => p.project.activeLayer.style = _).listen();
-    guiLayerFolder.add({
-        layerPanel: _ => paperjsLayersPanel.create({
-            title: '', draggable: true
-        })
-    }, 'layerPanel').name('layer panel');
-
-    let guiCurrentLayer = guiLayerFolder.add(p.project.layerInterface, 'current',
-
-        p.project.layers.map(l => l.name)).onFinishChange(guiUpdateLayerName).listen();
-
-    p.project.layerInterface.current = p.project.activeLayer.name;
-    p.project.layerInterface.name = p.project.activeLayer.name;
-
-    // guiLayerFolder.add(p.project.activeLayer.interface,'current', p.project.interface.layerNames())
-    //     .name('active layer')
-    //     .onChange(name => { // find named layer
-    //         const layer = p.project.layers.find(layer => layer.name === name)
-    //         if(layer) layer.activate(); 
-    //     });
-    guiLayerFolder.open();
+    //guiLayerFolder.open();
 
     const guiBackground = gui.addFolder('Background');
     //guiBackground.addColor({bg:fillColor}, 'fillColor');
@@ -1474,7 +1529,7 @@ function setupGUI() {
     guiPalette.add(p.paletteInterface, 'ncolors', 1, 256).step(1).listen();
     guiPalette.add(p.paletteInterface, 'build').name('update');
     guiPalette.add(p.paletteInterface, 'draw').onChange(_ => p.paletteInterface.draw(layer = p.comp.clipboard));
-    guiPalette.add(p.paletteInterface, 'strokeChoice', ['black', 'white', 'random', 'color0', 'color1', 'color2', 'color3', 'color4', 'color5']);
+    //  guiPalette.add(p.paletteInterface, 'strokeChoice', ['black', 'white', 'random', 'color0', 'color1', 'color2', 'color3', 'color4', 'color5']);
 
 
     gui.remember(p.paletteInterface);
@@ -1501,6 +1556,7 @@ function setupGUI() {
     guiProcess.add(p.processInterface, 'fitToView');
     guiProcess.add(p.processInterface, 'fitToLast');
     guiProcess.add(p.processInterface, 'reverse');
+    guiProcess.add(p.processInterface, 'normalGrow');
 
     ///////////////////////////////////////////
     const guiIOFolder = gui.addFolder('Import/Export');
@@ -1711,7 +1767,7 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'palettize');
     guiActionFolder.add(p.actionInterface, 'visibility');
     guiActionFolder.add(p.actionInterface, 'blendModeRnd');
-    guiActionFolder.add(p.actionInterface, 'normalGrow');
+
     ///////////////////////////////////////////
     // const guiColorFlder = gui.addFolder('Colors');
     // guiColorFlder.addColor(p.colorInterface, 'color1');
