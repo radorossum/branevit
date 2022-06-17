@@ -3,6 +3,7 @@ p = paper;
 
 let gui;
 
+
 window.onload = _ => {
     // Setup Paper
     //pp = paper.project;
@@ -10,12 +11,24 @@ window.onload = _ => {
     p.setup(canvas);
     p.install(window);
 
+    p.Path.prototype.resample = function(n) {
+        let path = this;
+        let length = path.length;
+        let newSegments = [];
+        let epsilon = path.closed?1:0;
+        for (let i = 0; i < n; i++) {
+            let s = path.getPointAt(length * (i) / (n-1+epsilon));
+            if (s) newSegments.push(s);
+        }
+        path.segments = newSegments;
+        return path;
+    }
+
     gui = new dat.GUI();
     setupElements();
     setupTools();
     setupInterfaces();
     setupLayers();
-
     setupGUI();
 
 }
@@ -24,7 +37,6 @@ window.onresize = paper.onResize = function () {
     paper.view.viewSize = new Size(window.innerWidth, window.innerHeight);
     console.log("resized to " + view.viewSize.width + "," + view.viewSize.height)
 }
-
 
 function setupInterfaces() {
     p.bools = ['unite', 'intersect', 'subtract', 'exclude', 'divide'];
@@ -154,11 +166,18 @@ function setupInterfaces() {
         palettize: function () {
             p.project.selectedItems.forEach(
                 function (item) {
-                    item.fillColor = p.paletteInterface.randomColor();
-                    item.strokeColor = p.paletteInterface.randomColor();
+                    if(item.fillColor) item.fillColor = p.paletteInterface.randomColor();
+                    if(item.strokeColor) item.strokeColor = p.paletteInterface.randomColor();
                 }
             );
         },
+        visibility: function () {
+            p.project.selectedItems.forEach(
+                function (item) {
+                    item.visible = !item.visible;
+                }
+            );
+        }
 
     }
 
@@ -275,8 +294,10 @@ function setupInterfaces() {
                     // if p is a path, resample it
                     if (path instanceof p.Path) {
                         newSegments = [];
+                        let epsilon = path.closed?1:0;
                         for (let i = 0; i <= n; i++) {
-                            let s = path.getPointAt(path.length * i / n);
+                            
+                            let s = path.getPointAt(path.length * (i) / (n+epsilon));
                             if (s) newSegments.push(s);
                         }
 
@@ -284,6 +305,7 @@ function setupInterfaces() {
 
                         let newpath = new p.Path({ segments: newSegments });
                         newpath.copyAttributes(path);
+                        newpath.closed = path.closed;
 
                         //newpath.selected = true;
                         if (p.Key.isDown('alt')) {
@@ -292,8 +314,6 @@ function setupInterfaces() {
                         path.selected = false;
                         newpath.smooth();
                     }
-
-
                 });
 
         },
@@ -532,9 +552,12 @@ function setupElements() {
     p.comp.bg.backdrop.name = 'backdrop_solid';
     p.comp.bg.backdrop.fillColor = p.comp.bg.backdrop.color1 = '#555';
     // p.comp.bg.backdrop.strokeColor = '#333'; 
-    p.comp.bg.backdrop.name = 'backdrop'
+    p.comp.bg.backdrop.name = 'backdrop';
     p.comp.bg.backdrop.update = function () {
-        p.comp.bg.backdrop.size = p.view.size;
+        p.comp.bg.backdrop.size = p.view.size; 
+        //translate back to origin
+        p.comp.bg.backdrop.position = [0, 0];
+       // p.comp.bg.backdrop.position = p.Point(0,0);
     };
 
     //////////////////////
@@ -615,13 +638,26 @@ function setupTools() {
     // edit tool
     p.tools.minDistance = 0;
     p.tools.maxDistance = 0;
-
+    p.tools.tolerance = 20;
+    p.tools.autoClose = false;
+    p.tools.autoSmooth = true;
+    p.tools.smoothness = 0.5;
+    p.tools.autoSimplify = true;
+    p.tools.simplicity = 0.5;
+    p.tools.autoFlatten = false;
+    p.tools.flatness = 0.;
+    p.tools.autoResample = false;
+    p.tools.samples = 10;
+ 
     (_ => {
         let tool = new p.Tool({ name: 'edit' });
         let hitOptions = {
+            //'segment', 'handle-in', 'handle-out', 'curve', 'stroke', 'fill', 'bounds', 'center', 'pixel'
             segments: true,
             stroke: true,
             fill: true,
+            handles:true,
+
             tolerance: 20
         };
 
@@ -677,12 +713,13 @@ function setupTools() {
                 }
 
                 if (hitResult) {
-                    //hitResult.selected = true;
+                    hitResult.fullySelected = true;
 
                     if (e.item) {
                         // event.item.selected = true;
-                        hitResult.item.selected = true;
-                        // event.item.selected = !event.item.selected;
+                       // hitResult.item.selected = true;
+
+                        //e.item.selected = !e.item.selected;
                     }
 
                     selectedPath = hitResult.item;
@@ -828,7 +865,8 @@ function setupTools() {
                         c.segments.map(s => {
                             selected = selected || tool.selectionPath.contains(s.point);
                             if (selected) {
-                                c.selected = true;
+                                //c.selected = true;
+                                c.selected=e.modifiers.alt?false:true;
                                 return;
                             }
                         });
@@ -905,6 +943,9 @@ function setupTools() {
                 tool.selectionPath.add(e.point);
             } else {
                 path.add(e.point);
+                if(p.tools.autoSmooth) path.smooth({factor:p.tools.smoothness});
+                if(p.tools.autoFlatten) path.flatten(p.tools.flatness);
+               // if(p.tools.autoSimplify) path.simplify();
             }
         }
 
@@ -932,7 +973,7 @@ function setupTools() {
                         c.segments.map(s => {
                             selected = selected || tool.selectionPath.contains(s.point);
                             if (selected) {
-                                c.selected = true;
+                                c.selected=e.modifiers.alt?false:true;
                                 return;
                             }
                         });
@@ -941,7 +982,7 @@ function setupTools() {
                 });
 
             }
-            else {
+            else { //draw
                 if (e.point.equals(mouseDownPoint)) {
                     // path.remove();
                     path.replaceWith(new p.Path
@@ -955,7 +996,7 @@ function setupTools() {
                     mouseUpPoint = e.point;
                     path.add(mouseUpPoint);
 
-                    if (e.modifiers.alt) {
+                    if (e.modifiers.alt || p.tools.autoClose) {
                         path.closed = true;
                     }
                     if (e.modifiers.meta)
@@ -963,9 +1004,14 @@ function setupTools() {
                         path.fillColor = p.brushInterface.getFillColor();
 
                     if (!e.modifiers.shift) {
-                        path.smooth();
-                        path.simplify();
-                        //path.selected = true;
+                        
+                        if(p.tools.autoFlatten) path.flatten(p.tools.flatness);
+                        if(p.tools.autoSimplify) path.simplify(p.tools.simplicity);
+                        if(p.tools.autoResample) path.resample(p.tools.samples); 
+                        if(p.tools.autoSmooth) path.smooth({factor:p.tools.smoothness});
+
+                    
+                        //path.selected = true; 
                     }
 
                 }
@@ -974,137 +1020,54 @@ function setupTools() {
         }
     })();
 
-    // // select tool
-    // (_ => {
-    //     const tool = new p.Tool({ name: 'select' });
-    //     tool.minDistance = 10;
+    // handles tool
+    (_ => {
+        let tool = new p.Tool({ name: 'handles' });
+        tool.minDistance = p.tools.minDistance;
+        tool.maxDistance = p.tools.maxDistance;
+        tool.hitResult = null;
+        tool.hitOptions = {
+            //type:'PathItem',
+            segments:true,
+            stroke:true,
+            handles:true,
+            tolerance:p.tools.tolerance,
+        }
+        tool.dragMap = {
+            'stroke':'curve',
+            'segment':'point',
+            'handle-in':'handleIn',
+            'handle-out':'handleOut',
+        }
+        // tool.onMouseMove = e=>{
+        //     let hitResult = p.project.hitTest(e.point, tool.hitOptions);
+        //     p.project.deselectAll();
+        //     if (hitResult) {
+        //         hitResult.item.selected = true;
+        //         hitResult.item.segments.map(s=>{
+        //             s.selected = true;
+        //         });
+        //     }
+        // }
+        tool.onMouseDown = e=> {
+            hitResult = p.project.hitTest(e.point, tool.hitOptions);
+            if (hitResult) {
+                hitResult.item.selected = true;
+                hitResult.item.segments.map(s=>{
+                    s.selected = true;
+                });
+            }
+        }
+        tool.onMouseDrag = e=> {
+            hitResult.segment[tool.dragMap[hitResult.type]]=
+            hitResult.segment[tool.dragMap[hitResult.type]].add(e.delta);
 
-    //     tool.selectionPath = new Path();
-    //     tool.selectionPath.strokeColor = 'red';
-    //     tool.selectionPath.strokeWidth = 1;
-    //     //dashed line for selection
-    //     tool.selectionPath.dashArray = [5, 5];
-
-    //     tool.onMouseDown = function (e) {
-    //         tool.selectionPath.remove();
-    //         tool.selectionPath = new Path();
-    //         tool.selectionPath.strokeColor = 'red';
-    //         tool.selectionPath.strokeWidth = 1;
-    //         tool.selectionPath.dashArray = [5, 5];
-    //         tool.selectionPath.add(e.point);
-    //         // console.log('mouse down' + event.point.x + " " + event.point.y);
-
-
-    //     }
-
-    //     tool.onMouseDrag = function (e) {
-    //         tool.selectionPath.add(e.point);
-    //     }
-
-    //     tool.onMouseUp = function (e) {
-
-    //         // if (e.item) {
-    //         //     p.project.activeLayer.children.forEach(
-    //         //         item => {
-    //         //             if (tool.selectionPath.intersects(item)) {
-    //         //                 //if (selectionPath.intersect(item) !=null) {
-    //         //                 //item.selected = true;
-    //         //                 item.selected = !item.selected;
-    //         //             }
-    //         //         }
-    //         //     );
-    //         //     tool.selectionPath.remove();
-    //         // } else {
-    //         if (e.item) {
-    //             tool.selectionPath.add(e.point);
-    //             tool.selectionPath.smooth();
-    //             tool.selectionPath.closed = true;
-    //             tool.selectionPath.simplify();
-
-    //             let selected = p.project.activeLayer.children.filter(c => c.bounds.intersects(tool.selectionPath.bounds));
-    //             selected.forEach(c => c.selected = true);
-    //             if (selected == null) {
-    //                 //clear selection
-    //                 //p.project.activeLayer.children.forEach(c => c.selected = false);
-    //                 p.project.selectedItems.forEach(i => i.selected = false);
-    //             }
-    //             tool.selectionPath.remove();
-    //             //}
-    //         } else {
-    //             p.project.selectedItems.forEach(i => i.selected = false);
-    //             tool.selectionPath.remove();
-    //         }
-
-
-    //     }
-
-    //     // tool.onKeyDown = function (e) {
-    //     //     if (e.key == 'delete' || e.key == 'backspace') {
-    //     //         if (e.modifiers.shift) {
-    //     //             p.project.selectedItems.forEach(i => i.remove());
-    //     //         } else {
-    //     //             p.project.activeLayer.children.forEach(i => i.selected ? i.remove() : null);
-    //     //         }
-    //     //     }
-    //     // }
-
-    // })();
-
-
-    ///////////////////
-    // pan view tool
-    //////////////////
-    // (_ => {
-    //     const tool = new p.Tool({ name: 'pan' });
-    //     let oldPointViewCoords;
-
-    //     tool.onMouseDown = e => {
-    //         oldPointViewCoords = p.view.projectToView(e.point);
-    //     }
-
-    //     tool.onMouseDrag = e => {
-    //         const delta = e.point.subtract(p.view.viewToProject(oldPointViewCoords));
-    //         oldPointViewCoords = p.view.projectToView(e.point);
-    //         p.view.translate(delta);
-    //     }
-    // })();
-
-    // // old drawing line
-    // (_ => {
-    //     const tool = new p.Tool()
-    //     tool.name = 'line'
-    //     let path
-    //     tool.onMouseDown = (e) => {
-    //         path = new p.Path()
-    //         path.strokeColor = '#424242'
-    //         path.strokeWidth = 4
-    //         path.add(e.point)
-    //     }
-
-    //     tool.onMouseDrag = function (event) {
-    //         path.add(event.point)
-    //     }
-    // })();
-
-    // // spot tool
-    // (_ => {
-    //     const tool = new p.Tool()
-    //     tool.name = 'dot'
-
-    //     let path
-
-    //     tool.onMouseDown = function (event) {
-    //         path = new p.Path.Circle({
-    //             center: event.point,
-    //             radius: 30,
-    //             fillColor: '#9C27B0'
-    //         })
-    //     }
-    // })();
+        }
+    })();
 
 
     p.tools.activeTool = 'pencil';
-    p.tools.lastTool = 'select';
+    p.tools.lastTool = 'edit';
     p.tools.setActiveTool = (name) => {
         p.tools.lastTool = p.tools.activeTool;
         p.tools.activeTool = name;
@@ -1315,6 +1278,18 @@ function setupGUI() {
             p.tools.maxDistance = _;
             p.tools.setActiveTool(p.tools.activeTool)
         });
+        guiToolFolder.add(p.tools,'autoClose');
+    guiToolFolder.add(p.tools,'autoSmooth');
+    guiToolFolder.add(p.tools, 'smoothness', -10., 10., 0.01);
+
+    guiToolFolder.add(p.tools,'autoSimplify');
+    guiToolFolder.add(p.tools, 'simplicity', 0., 100., 0.01);
+    
+    guiToolFolder.add(p.tools,'autoFlatten');
+    guiToolFolder.add(p.tools, 'flatness', 0., 100., 0.01);
+    
+    guiToolFolder.add(p.tools,'autoResample');
+    guiToolFolder.add(p.tools, 'samples', 2, 1000, 1);
 
     guiToolFolder.open();
 
@@ -1684,6 +1659,7 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'select');
     guiActionFolder.add(p.actionInterface, 'selectProbability', 0., 1., 0.01);
     guiActionFolder.add(p.actionInterface, 'palettize');
+    guiActionFolder.add(p.actionInterface, 'visibility');
     guiActionFolder.add(p.actionInterface, 'blendModeRnd');
     ///////////////////////////////////////////
     // const guiColorFlder = gui.addFolder('Colors');
