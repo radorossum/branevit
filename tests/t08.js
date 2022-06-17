@@ -11,13 +11,13 @@ window.onload = _ => {
     p.setup(canvas);
     p.install(window);
 
-    p.Path.prototype.resample = function(n) {
+    p.Path.prototype.resample = function (n) {
         let path = this;
         let length = path.length;
         let newSegments = [];
-        let epsilon = path.closed?1:0;
+        let epsilon = path.closed ? 1 : 0;
         for (let i = 0; i < n; i++) {
-            let s = path.getPointAt(length * (i) / (n-1+epsilon));
+            let s = path.getPointAt(length * (i) / (n - 1 + epsilon));
             if (s) newSegments.push(s);
         }
         path.segments = newSegments;
@@ -166,8 +166,8 @@ function setupInterfaces() {
         palettize: function () {
             p.project.selectedItems.forEach(
                 function (item) {
-                    if(item.fillColor) item.fillColor = p.paletteInterface.randomColor();
-                    if(item.strokeColor) item.strokeColor = p.paletteInterface.randomColor();
+                    if (item.fillColor) item.fillColor = p.paletteInterface.randomColor();
+                    if (item.strokeColor) item.strokeColor = p.paletteInterface.randomColor();
                 }
             );
         },
@@ -178,12 +178,13 @@ function setupInterfaces() {
                 }
             );
         },
-        randomizePath: function () {
+        normalGrow: function (modSource = Math.random, modScale = 10., modBias = 10.) {
             // randomize path by displacing each segment along the normal at that location
             // get path items
             let paths = p.project.getItems({
                 type: 'path',
-                selected: true});
+                selected: true
+            });
             // for each path iterate over segments
             paths.forEach(function (path) {
                 let marks = new p.Path();
@@ -197,18 +198,33 @@ function setupInterfaces() {
                 path.segments.forEach(function (segment) {
                     let offset = path.getOffsetOf(segment.point);
                     let normal = path.getNormalAt(offset);
-                    let displaced = segment.point.add(normal.multiply(Math.random() * 100));
+                    let displaced = segment.point.add(normal.multiply(modSource() * modScale + modBias));
                     marks.add(displaced);
                     //norms.addChild(new p.Path.Line(segment.point, displaced));
-                    norms.add(segment.point, displaced,segment.point.add(normal.rotate(90)));
-                    
+                    norms.add(segment.point, displaced, segment.point.add(normal.rotate(90)));
+
                 });
-                if(p.tools.autoSmooth) marks.smooth({type: p.tools.smoothType,factor: p.tools.smoothFactor});
+                if (marks.className == 'Path') {
+                    marks.closed = path.closed;
+                    if (p.tools.autoFlatten) marks.flatten(p.tools.flatness);
+                    if (p.tools.autoSimplify) marks.simplify(p.tools.simplicity);
+                    if (p.tools.autoResample) marks.resample(p.tools.samples);
+                    if (p.tools.autoSmooth && !marks.intersects(marks)) marks.smooth({ type: p.tools.smoothType, factor: p.tools.smoothness });
+                    path.parent.addChild(marks);
+                } else {
+                    marks.remove();
+                }
                 path.selected = false;
-                path.parent.addChild(marks);
+                
+                let normGrow = marks['subtract'](path);
+                if (normGrow.type == 'path') {
+                    // normGrow.smooth({ type: p.tools.smoothType, factor: p.tools.smoothFactor });
+                    // path.parent.addChild(normGrow); 
+                }
+                norms.remove();
             });
 
-        }, 
+        },
 
 
     }
@@ -306,10 +322,10 @@ function setupInterfaces() {
                 v => {
                     if (v instanceof p.Path) {
                         v.reduce();
-                        if(v.segments.length>1){
+                        if (v.segments.length > 1) {
                             v.simplify(p.processInterface.simplifyTolerance);
                         }
-                       // v.simplify(p.processInterface.simplicity);
+                        // v.simplify(p.processInterface.simplicity);
                     }
                 });
         },
@@ -326,10 +342,10 @@ function setupInterfaces() {
                     // if p is a path, resample it
                     if (path instanceof p.Path) {
                         newSegments = [];
-                        let epsilon = path.closed?1:0;
+                        let epsilon = path.closed ? 1 : 0;
                         for (let i = 0; i <= n; i++) {
-                            
-                            let s = path.getPointAt(path.length * (i) / (n+epsilon));
+
+                            let s = path.getPointAt(path.length * (i) / (n + epsilon));
                             if (s) newSegments.push(s);
                         }
 
@@ -586,10 +602,10 @@ function setupElements() {
     // p.comp.bg.backdrop.strokeColor = '#333'; 
     p.comp.bg.backdrop.name = 'backdrop';
     p.comp.bg.backdrop.update = function () {
-        p.comp.bg.backdrop.size = p.view.size; 
+        p.comp.bg.backdrop.size = p.view.size;
         //translate back to origin
         p.comp.bg.backdrop.position = [0, 0];
-       // p.comp.bg.backdrop.position = p.Point(0,0);
+        // p.comp.bg.backdrop.position = p.Point(0,0);
     };
 
     //////////////////////
@@ -681,7 +697,7 @@ function setupTools() {
     p.tools.flatness = 0.;
     p.tools.autoResample = false;
     p.tools.samples = 10;
- 
+
     (_ => {
         let tool = new p.Tool({ name: 'edit' });
         let hitOptions = {
@@ -689,7 +705,7 @@ function setupTools() {
             segments: true,
             stroke: true,
             fill: true,
-            handles:true,
+            handles: true,
 
             tolerance: 20
         };
@@ -750,7 +766,7 @@ function setupTools() {
 
                     if (e.item) {
                         // event.item.selected = true;
-                       // hitResult.item.selected = true;
+                        // hitResult.item.selected = true;
 
                         //e.item.selected = !e.item.selected;
                     }
@@ -899,7 +915,7 @@ function setupTools() {
                             selected = selected || tool.selectionPath.contains(s.point);
                             if (selected) {
                                 //c.selected = true;
-                                c.selected=e.modifiers.alt?false:true;
+                                c.selected = e.modifiers.alt ? false : true;
                                 return;
                             }
                         });
@@ -976,9 +992,9 @@ function setupTools() {
                 tool.selectionPath.add(e.point);
             } else {
                 path.add(e.point);
-                if(p.tools.autoSmooth) path.smooth({type: p.tools.smoothType,factor:p.tools.smoothness});
-                if(p.tools.autoFlatten) path.flatten(p.tools.flatness);
-               // if(p.tools.autoSimplify) path.simplify();
+                if (p.tools.autoSmooth) path.smooth({ type: p.tools.smoothType, factor: p.tools.smoothness });
+                if (p.tools.autoFlatten) path.flatten(p.tools.flatness);
+                // if(p.tools.autoSimplify) path.simplify();
             }
         }
 
@@ -1006,7 +1022,7 @@ function setupTools() {
                         c.segments.map(s => {
                             selected = selected || tool.selectionPath.contains(s.point);
                             if (selected) {
-                                c.selected=e.modifiers.alt?false:true;
+                                c.selected = e.modifiers.alt ? false : true;
                                 return;
                             }
                         });
@@ -1037,13 +1053,13 @@ function setupTools() {
                         path.fillColor = p.brushInterface.getFillColor();
 
                     if (!e.modifiers.shift) {
-                        
-                        if(p.tools.autoFlatten) path.flatten(p.tools.flatness);
-                        if(p.tools.autoSimplify) path.simplify(p.tools.simplicity);
-                        if(p.tools.autoResample) path.resample(p.tools.samples); 
-                        if(p.tools.autoSmooth) path.smooth({type:p.tools.smoothType,factor:p.tools.smoothness});
 
-                    
+                        if (p.tools.autoFlatten) path.flatten(p.tools.flatness);
+                        if (p.tools.autoSimplify) path.simplify(p.tools.simplicity);
+                        if (p.tools.autoResample) path.resample(p.tools.samples);
+                        if (p.tools.autoSmooth) path.smooth({ type: p.tools.smoothType, factor: p.tools.smoothness });
+
+
                         //path.selected = true; 
                     }
 
@@ -1061,16 +1077,16 @@ function setupTools() {
         tool.hitResult = null;
         tool.hitOptions = {
             //type:'PathItem',
-            segments:true,
-            stroke:true,
-            handles:true,
-            tolerance:p.tools.tolerance,
+            segments: true,
+            stroke: true,
+            handles: true,
+            tolerance: p.tools.tolerance,
         }
         tool.dragMap = {
-            'stroke':'curve',
-            'segment':'point',
-            'handle-in':'handleIn',
-            'handle-out':'handleOut',
+            'stroke': 'curve',
+            'segment': 'point',
+            'handle-in': 'handleIn',
+            'handle-out': 'handleOut',
         }
         // tool.onMouseMove = e=>{
         //     let hitResult = p.project.hitTest(e.point, tool.hitOptions);
@@ -1082,18 +1098,18 @@ function setupTools() {
         //         });
         //     }
         // }
-        tool.onMouseDown = e=> {
+        tool.onMouseDown = e => {
             hitResult = p.project.hitTest(e.point, tool.hitOptions);
             if (hitResult) {
                 hitResult.item.selected = true;
-                hitResult.item.segments.map(s=>{
+                hitResult.item.segments.map(s => {
                     s.selected = true;
                 });
             }
         }
-        tool.onMouseDrag = e=> {
-            hitResult.segment[tool.dragMap[hitResult.type]]=
-            hitResult.segment[tool.dragMap[hitResult.type]].add(e.delta);
+        tool.onMouseDrag = e => {
+            hitResult.segment[tool.dragMap[hitResult.type]] =
+                hitResult.segment[tool.dragMap[hitResult.type]].add(e.delta);
 
         }
     })();
@@ -1311,18 +1327,18 @@ function setupGUI() {
             p.tools.maxDistance = _;
             p.tools.setActiveTool(p.tools.activeTool)
         });
-        guiToolFolder.add(p.tools,'autoClose');
-    guiToolFolder.add(p.tools,'autoSmooth');
+    guiToolFolder.add(p.tools, 'autoClose');
+    guiToolFolder.add(p.tools, 'autoSmooth');
     guiToolFolder.add(p.tools, 'smoothness', -10., 10., 0.01);
     guiToolFolder.add(p.tools, 'smoothType', ['geometric', 'catmull-rom', 'continuous', 'asymmetric']);
-  
-    guiToolFolder.add(p.tools,'autoSimplify');
+
+    guiToolFolder.add(p.tools, 'autoSimplify');
     guiToolFolder.add(p.tools, 'simplicity', 0., 100., 0.01);
-    
-    guiToolFolder.add(p.tools,'autoFlatten');
+
+    guiToolFolder.add(p.tools, 'autoFlatten');
     guiToolFolder.add(p.tools, 'flatness', 0., 100., 0.01);
-    
-    guiToolFolder.add(p.tools,'autoResample');
+
+    guiToolFolder.add(p.tools, 'autoResample');
     guiToolFolder.add(p.tools, 'samples', 2, 1000, 1);
 
     guiToolFolder.open();
@@ -1695,7 +1711,7 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'palettize');
     guiActionFolder.add(p.actionInterface, 'visibility');
     guiActionFolder.add(p.actionInterface, 'blendModeRnd');
-    guiActionFolder.add(p.actionInterface, 'randomizePath');
+    guiActionFolder.add(p.actionInterface, 'normalGrow');
     ///////////////////////////////////////////
     // const guiColorFlder = gui.addFolder('Colors');
     // guiColorFlder.addColor(p.colorInterface, 'color1');
