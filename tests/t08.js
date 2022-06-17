@@ -184,15 +184,29 @@ function setupInterfaces() {
             let paths = p.project.getItems({
                 type: 'path',
                 selected: true});
-            // get path segments
-            let segments = paths.map(path => path.segments);
-            // displace each segment along the normal by a random amount
-            segments.forEach(segment => {
-                segment.forEach(function (segment) {
-                    segment.point += segment.normal * p.randomInt(-10, 10);
+            // for each path iterate over segments
+            paths.forEach(function (path) {
+                let marks = new p.Path();
+                //let norms = new p.CompoundPath();
+                let norms = new p.Path();
+                norms.copyAttributes(path);
+                norms.strokeColor = p.paletteInterface.randomColor();
+                norms.fillColor = p.paletteInterface.randomColor();
+                marks.copyAttributes(path);
+                marks.strokeColor = p.paletteInterface.randomColor();
+                path.segments.forEach(function (segment) {
+                    let offset = path.getOffsetOf(segment.point);
+                    let normal = path.getNormalAt(offset);
+                    let displaced = segment.point.add(normal.multiply(Math.random() * 100));
+                    marks.add(displaced);
+                    //norms.addChild(new p.Path.Line(segment.point, displaced));
+                    norms.add(segment.point, displaced,segment.point.add(normal.rotate(90)));
+                    
                 });
-            }
-            );
+                if(p.tools.autoSmooth) marks.smooth({type: p.tools.smoothType,factor: p.tools.smoothFactor});
+                path.selected = false;
+                path.parent.addChild(marks);
+            });
 
         }, 
 
