@@ -176,36 +176,41 @@ function setupInterfaces() {
             let resultGroup = new p.Group();
             resultGroup.name = resultGroup.className + '_results';
             // apply the selected bool operation to the source items, pairing every two consecutive items
+            // for (let i = 0; i < source.length - 1; i++) {
+            //     let item1 = source[i];
+            //     for (let j = i + 1; j < source.length; j++) {
+
             for (let i = 0; i < source.length - 1; i++) {
                 let item1 = source[i];
-                for (let j = i + 1; j < source.length; j++) {
-                    let item2 = source[j];
-                    let result = item1[p.processInterface.boolOp](item2);
-                    //set the item name to the item's class name
-                    //result.name = result.className;
+                let item2 = source[i + 1];
+                let result = item1[p.processInterface.boolOp](item2);
+                //set the item name to the item's class name
+                //result.name = result.className;
 
-                    item1.name = `${item1.className}_ ${i}`;
-                    item2.name = `${item2.className}_ ${j}`;
-                    result.name = `${result.className}_${p.processInterface.boolOp}${i}-${j}`;
-                    result.reduce();
-                    result.selected = true;
-                    if (result.className == 'Path') {
-                        result.isEmpty() ? result.remove() : resultGroup.addChild(result.reduce());
+                item1.name = `${item1.className}_ ${i}`;
+                //item2.name = `${item2.className}_ ${j}`;
+                item2.name = `${item2.className}_ ${i + 1}`;
+                //result.name = `${result.className}_${p.processInterface.boolOp}${i}-${j}`;
+                result.name = `${result.className}_${p.processInterface.boolOp}${i}-${i + 1}`;
+                result.reduce();
+                result.selected = true;
+                if (result.className == 'Path') {
+                    result.isEmpty() ? result.remove() : resultGroup.addChild(result.reduce());
 
-                    } else if (result.className == 'CompoundPath') {
-                        //count backwards to avoid indexing issues
-                        for (let k = result.children.length - 1; k >= 0; k--) {
-                            resultGroup.addChild(result.children[k]);
-                        }
-                        result.remove();
-                        //result.children.map(item => resultGroup.addChild(item));
-                        // result.remove();
+                } else if (result.className == 'CompoundPath') {
+                    //count backwards to avoid indexing issues
+                    for (let k = result.children.length - 1; k >= 0; k--) {
+                        resultGroup.addChild(result.children[k]);
                     }
-
-
+                    result.remove();
+                    //result.children.map(item => resultGroup.addChild(item));
+                    // result.remove();
                 }
-            }
 
+
+            }
+            //}
+            console.log(resultGroup);
 
 
             for (let i = resultGroup.children.length - 1; i >= 0; i--) {
@@ -216,8 +221,8 @@ function setupInterfaces() {
             }
             if (p.Key.isDown('alt')) {
                 //count backwards to avoid indexing issues delete the source items
-                for (let i = source.length - 1; i >= 0; i--) {
-                    source[i].remove();
+                for (let i = selectedPaths.length - 1; i >= 0; i--) {
+                    selectedPaths[i].remove();
                 }
             }
 
@@ -250,7 +255,10 @@ function setupInterfaces() {
                 v => {
                     if (v instanceof p.Path) {
                         v.reduce();
-                        v.simplify(p.processInterface.simplicity);
+                        if(v.segments.length>1){
+                            v.simplify(p.processInterface.simplifyTolerance);
+                        }
+                       // v.simplify(p.processInterface.simplicity);
                     }
                 });
         },
@@ -934,22 +942,33 @@ function setupTools() {
 
             }
             else {
-                mouseUpPoint = e.point;
-                path.add(mouseUpPoint);
+                if (e.point.equals(mouseDownPoint)) {
+                    // path.remove();
+                    path.replaceWith(new p.Path
+                        .Circle({
+                            center: mouseDownPoint,
+                            radius: p.brushInterface.strokeWidth,
+                            strokeColor: p.brushInterface.getStrokeColor(),
+                            fillColor: p.brushInterface.getFillColor(),
+                        }));
+                } else {
+                    mouseUpPoint = e.point;
+                    path.add(mouseUpPoint);
 
-                if (e.modifiers.alt) {
-                    path.closed = true;
+                    if (e.modifiers.alt) {
+                        path.closed = true;
+                    }
+                    if (e.modifiers.meta)
+                        // path.fillColor = p.Color.random();
+                        path.fillColor = p.brushInterface.getFillColor();
+
+                    if (!e.modifiers.shift) {
+                        path.smooth();
+                        path.simplify();
+                        //path.selected = true;
+                    }
+
                 }
-                if (e.modifiers.meta)
-                    // path.fillColor = p.Color.random();
-                    path.fillColor = p.brushInterface.getFillColor();
-
-                if (!e.modifiers.shift) {
-                    path.smooth();
-                    path.simplify();
-                    //path.selected = true;
-                }
-
                 path = null;
             }
         }
