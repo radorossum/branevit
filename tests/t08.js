@@ -177,7 +177,25 @@ function setupInterfaces() {
                     item.visible = !item.visible;
                 }
             );
-        }
+        },
+        randomizePath: function () {
+            // randomize path by displacing each segment along the normal at that location
+            // get path items
+            let paths = p.project.getItems({
+                type: 'path',
+                selected: true});
+            // get path segments
+            let segments = paths.map(path => path.segments);
+            // displace each segment along the normal by a random amount
+            segments.forEach(segment => {
+                segment.forEach(function (segment) {
+                    segment.point += segment.normal * p.randomInt(-10, 10);
+                });
+            }
+            );
+
+        }, 
+
 
     }
 
@@ -642,6 +660,7 @@ function setupTools() {
     p.tools.autoClose = false;
     p.tools.autoSmooth = true;
     p.tools.smoothness = 0.5;
+    p.tools.smoothType = 'geometric';
     p.tools.autoSimplify = true;
     p.tools.simplicity = 0.5;
     p.tools.autoFlatten = false;
@@ -943,7 +962,7 @@ function setupTools() {
                 tool.selectionPath.add(e.point);
             } else {
                 path.add(e.point);
-                if(p.tools.autoSmooth) path.smooth({factor:p.tools.smoothness});
+                if(p.tools.autoSmooth) path.smooth({type: p.tools.smoothType,factor:p.tools.smoothness});
                 if(p.tools.autoFlatten) path.flatten(p.tools.flatness);
                // if(p.tools.autoSimplify) path.simplify();
             }
@@ -1008,7 +1027,7 @@ function setupTools() {
                         if(p.tools.autoFlatten) path.flatten(p.tools.flatness);
                         if(p.tools.autoSimplify) path.simplify(p.tools.simplicity);
                         if(p.tools.autoResample) path.resample(p.tools.samples); 
-                        if(p.tools.autoSmooth) path.smooth({factor:p.tools.smoothness});
+                        if(p.tools.autoSmooth) path.smooth({type:p.tools.smoothType,factor:p.tools.smoothness});
 
                     
                         //path.selected = true; 
@@ -1281,7 +1300,8 @@ function setupGUI() {
         guiToolFolder.add(p.tools,'autoClose');
     guiToolFolder.add(p.tools,'autoSmooth');
     guiToolFolder.add(p.tools, 'smoothness', -10., 10., 0.01);
-
+    guiToolFolder.add(p.tools, 'smoothType', ['geometric', 'catmull-rom', 'continuous', 'asymmetric']);
+  
     guiToolFolder.add(p.tools,'autoSimplify');
     guiToolFolder.add(p.tools, 'simplicity', 0., 100., 0.01);
     
@@ -1661,6 +1681,7 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'palettize');
     guiActionFolder.add(p.actionInterface, 'visibility');
     guiActionFolder.add(p.actionInterface, 'blendModeRnd');
+    guiActionFolder.add(p.actionInterface, 'randomizePath');
     ///////////////////////////////////////////
     // const guiColorFlder = gui.addFolder('Colors');
     // guiColorFlder.addColor(p.colorInterface, 'color1');
