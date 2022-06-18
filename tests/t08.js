@@ -100,7 +100,7 @@ function setupInterfaces() {
         random: _ => { return p.Color.random() },
         fixedStroke: _ => { return p.brushInterface.strokeColor },
         fixedFill: _ => { return p.brushInterface.fillColor },
-        
+
         none: _ => { return null },
         paletternd: _ => {
             return p.paletteInterface.palette[Math.floor(Math.random() * p.paletteInterface.palette.length)];
@@ -1054,6 +1054,7 @@ function setupTools() {
         let path;
         let selectionPath;
         let mouseDownPoint, mouseUpPoint;
+        tool.oldPointViewCoords = null;
 
         tool.selectionPath = null;
         tool.oldPointViewCoords = null;
@@ -1073,7 +1074,8 @@ function setupTools() {
                     up: true,
                     down: true
                 })
-
+            } else if (p.Key.isDown('space')) { //pan view
+                tool.oldPointViewCoords = p.view.projectToView(e.point);
             } else {
                 path = new p.Path();
                 // path.strokeColor = paramPalette.randomColor();
@@ -1103,7 +1105,12 @@ function setupTools() {
 
             } else if (p.Key.isDown('q')) { //lasso selection
                 tool.selectionPath.add(e.point);
-            } else {
+            } else if (p.Key.isDown('space')) { //pan view
+                const delta = e.point.subtract(p.view.viewToProject(tool.oldPointViewCoords));
+                tool.oldPointViewCoords = p.view.projectToView(e.point);
+                p.view.translate(delta);
+            }
+            else { //draw
                 path.add(e.point);
                 if (p.tools.autoSmooth) path.smooth({ type: p.tools.smoothType, factor: p.tools.smoothness });
                 if (p.tools.autoFlatten) path.flatten(p.tools.flatness);
@@ -1274,14 +1281,64 @@ function setupGUI() {
             return false;
         });
 
-        //add event handler for escape key
         document.addEventListener('keydown', e => {
+            //select all elements in a layer on cmd-a
+            if (e.keyCode === 65 && e.metaKey) {
+                e.preventDefault();
+                p.project.activeLayer.children.map(c => c.selected = true);
+            }
+            //delete selected elements on cmd-d
+            if (e.keyCode === 68 && e.metaKey) {
+                e.preventDefault();
+                //count backwards and remove
+                for (let i = p.project.selectedItems.length - 1; i >= 0; i--) {
+                    p.project.selectedItems[i].remove();
+                }
+            }
+            //delete all elements on cmd-shift-d
+            if (e.keyCode === 68 && e.shiftKey && e.metaKey) {
+                e.preventDefault();
+                for (let i = p.project.activeLayer.children.length - 1; i >= 0; i--) {
+                    p.project.activeLayer.children[i].remove();
+                }
+            }
+            //toggle selected elements on cmd-opt-a or t 
+           if ( (e.keyCode === 84 || e.keyCode===65)  && e.altKey &&  e.metaKey) {
+                e.preventDefault();
+                for(let i=0;i<p.project.activeLayer.children.length;i++) {
+                    let s = p.project.activeLayer.children[i].selected;
+                    p.project.activeLayer.children[i].selected = !s;
+                }
+               // p.project.activeLayer.children.forEach(c => c.selected = !c.selected);
+            }
+            
+            //uselect all on cmd-shift-a
+            if (e.keyCode === 65 && e.shiftKey && e.metaKey) {
+                e.preventDefault();
+                p.project.selectedItems.map(c => c.selected = false);
+            }
+
+            //reset the view on cmd-option-v
+            if (e.keyCode === 86 && e.metaKey && e.altKey) {
+                e.preventDefault();
+                let x = p.view.bounds.x;
+                let y = p.view.bounds.y;
+                p.view.zoom = 1.;
+                p.view.translate(x, y);
+                x = p.view.bounds.x;
+                y = p.view.bounds.y;
+                // p.view.zoom = 1.;
+                p.view.translate(x, y);
+            }
+
+            //toggle gui view
             if ((e.keyCode == 71 && e.altKey)) {
                 if (e.shiftKey) { gui.closed ? gui.open() : gui.close(); }
                 else {
                     gui.domElement.style.display = gui.domElement.style.display == 'none' ? 'block' : 'none';
                 }
             }
+            //add event handler for escape key
             if (e.keyCode === 27) {
                 //p.view.scale(1);
                 //fit the view to the window
@@ -1459,8 +1516,8 @@ function setupGUI() {
 
     //////////////////////////////////////////////
     const guiBrushFolder = gui.addFolder('Brush');
-    guiBrushFolder.add(p.brushInterface, 'strokeMethod', ['fixedStroke','fixedFill', 'random', 'none', 'paletternd', 'paletteindex']);
-    guiBrushFolder.add(p.brushInterface, 'fillMethod', ['fixedStroke','fixedFill', 'random', 'none', 'paletternd', 'paletteindex']);
+    guiBrushFolder.add(p.brushInterface, 'strokeMethod', ['fixedStroke', 'fixedFill', 'random', 'none', 'paletternd', 'paletteindex']);
+    guiBrushFolder.add(p.brushInterface, 'fillMethod', ['fixedStroke', 'fixedFill', 'random', 'none', 'paletternd', 'paletteindex']);
     guiBrushFolder.addColor(p.brushInterface, 'strokeColor');
     guiBrushFolder.add(p.brushInterface, 'updateStrokeColor');
     guiBrushFolder.addColor(p.brushInterface, 'fillColor');
