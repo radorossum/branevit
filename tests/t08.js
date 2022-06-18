@@ -1,8 +1,6 @@
 
 p = paper;
-
 let gui;
-
 
 window.onload = _ => {
     // Setup Paper
@@ -44,6 +42,7 @@ function setupInterfaces() {
         strokeMethod: 'paletternd', //fixed, random, none, color0, color1, paletternd, paletteindex
         fillMethod: 'none',
         strokeColor: '#000',
+
         fillColor: '#fff',
         strokeWidth: 1,
         opacity: 1.,
@@ -99,7 +98,9 @@ function setupInterfaces() {
         },
 
         random: _ => { return p.Color.random() },
-        fixed: _ => { return p.brushInterface.strokeColor },
+        fixedStroke: _ => { return p.brushInterface.strokeColor },
+        fixedFill: _ => { return p.brushInterface.fillColor },
+        
         none: _ => { return null },
         paletternd: _ => {
             return p.paletteInterface.palette[Math.floor(Math.random() * p.paletteInterface.palette.length)];
@@ -113,7 +114,16 @@ function setupInterfaces() {
 
             return c;
 
-        }
+        },
+        palettize: function () {
+            p.project.selectedItems.forEach(
+                function (item) {
+                    if (item.fillColor) item.fillColor = p.paletteInterface.randomColor();
+                    if (item.strokeColor) item.strokeColor = p.paletteInterface.randomColor();
+                }
+            );
+        },
+        updateBlendMode: function () { p.project.selectedItems.forEach(item => item.blendMode = p.brushInterface.blendMode) }
 
     }
 
@@ -209,14 +219,7 @@ function setupInterfaces() {
             }
         },
 
-        palettize: function () {
-            p.project.selectedItems.forEach(
-                function (item) {
-                    if (item.fillColor) item.fillColor = p.paletteInterface.randomColor();
-                    if (item.strokeColor) item.strokeColor = p.paletteInterface.randomColor();
-                }
-            );
-        },
+
         visibility: function () {
             p.project.selectedItems.forEach(
                 function (item) {
@@ -231,10 +234,57 @@ function setupInterfaces() {
 
     p.processInterface = {
         boolOp: 'unite', //unite, intersect, subtract, exclude, divide
+        boolOperate: function (desctructive = false) {
+            let selectedPaths = p.project.getItems({
+                selected: true,
+                class: p.PathItem
+            });
+            //  selectedPaths.forEach(item=>item.dashArray = [5,5]);
+            let tmp = selectedPaths[0].clone(), result;
+            for (let i = 1; i < selectedPaths.length; i++) {
+                result = selectedPaths[i][p.processInterface.boolOp](tmp);
+                result.copyAttributes(selectedPaths[i]);
+                if (tmp.strokeColor && selectedPaths[i].strokeColor) {
+                    result.strokeColor = tmp.strokeColor.add(selectedPaths[i].strokeColor).multiply(0.5);
+                }
+                if (tmp.fillColor && selectedPaths[i].fillColor) {
+                    result.fillColor = tmp.fillColor.add(selectedPaths[i].fillColor).multiply(0.5);
+                }
+                tmp.remove();
+                tmp = result;
+            }
+            if (desctructive || p.Key.isDown('alt')) {
+                for (let i = selectedPaths.length - 1; i >= 0; i--) {
+                    selectedPaths[i].remove();
+                }
+            } else {
+                selectedPaths.forEach(item => item.selected = false);
+            }
+            result.reduce();
+            if (result) {
+                result.selected = true;
+                if (result.className == 'CompoundPath') {
+                    for (let i = result.children.length - 1; i >= 0; i--) {
+                        // result.children[i].copyAttributes(result);
+                        // console.log(result.children[i].strokeColor.toString());
+                        if (!result.children[i].strokeColor && !result.children[i].fillColor) {
+                            result.children[i].strokeColor = result.strokeColor;
+                        }
+                        result.children[i].selected = true;
+                        result.children[i].visible = true;
+                        result.children[i].reduce();
+                        result.children[i].addTo(result.parent);
+
+
+                    }
+                    result.remove();
+                }
+            }
+        },
         bool: function () {
             let selectedPaths = p.project.getItems({
                 selected: true,
-                class: p.Path
+                class: p.PathItem
 
             });
             let source = [...selectedPaths];
@@ -1030,7 +1080,9 @@ function setupTools() {
                 // path.strokeColor = p.Color.random();
                 path.strokeColor = p.brushInterface.getStrokeColor();
                 path.fillColor = p.brushInterface.getFillColor();
-                path.strokeWidth = p.brushInterface.strokeWidth;
+                path.strokeWidth = p.brushInterface.getStrokeWidth();
+                path.blendMode = p.brushInterface.blendMode;
+                path.opacity = p.brushInterface.getOpacity();
 
                 path.add(e.point);
             }
@@ -1094,14 +1146,14 @@ function setupTools() {
             }
             else { //draw
                 if (e.point.equals(mouseDownPoint)) {
-                    // path.remove();
-                    path.replaceWith(new p.Path
-                        .Circle({
-                            center: mouseDownPoint,
-                            radius: p.brushInterface.strokeWidth,
-                            strokeColor: p.brushInterface.getStrokeColor(),
-                            fillColor: p.brushInterface.getFillColor(),
-                        }));
+                    // // path.remove();
+                    // path.replaceWith(new p.Path
+                    //     .Circle({
+                    //         center: mouseDownPoint,
+                    //         radius: p.brushInterface.strokeWidth,
+                    //         strokeColor: p.brushInterface.getStrokeColor(),
+                    //         fillColor: p.brushInterface.getFillColor(),
+                    //     }));
                 } else {
                     mouseUpPoint = e.point;
                     path.add(mouseUpPoint);
@@ -1111,7 +1163,8 @@ function setupTools() {
                     }
                     if (e.modifiers.meta)
                         // path.fillColor = p.Color.random();
-                        path.fillColor = p.brushInterface.getFillColor();
+                        //  path.fillColor = p.brushInterface.getFillColor();
+                        path.selected = true;
 
                     if (!e.modifiers.shift) {
 
@@ -1406,8 +1459,8 @@ function setupGUI() {
 
     //////////////////////////////////////////////
     const guiBrushFolder = gui.addFolder('Brush');
-    guiBrushFolder.add(p.brushInterface, 'strokeMethod', ['fixed', 'random', 'none', 'paletternd', 'paletteindex']);
-    guiBrushFolder.add(p.brushInterface, 'fillMethod', ['fixed', 'random', 'none', 'paletternd', 'paletteindex']);
+    guiBrushFolder.add(p.brushInterface, 'strokeMethod', ['fixedStroke','fixedFill', 'random', 'none', 'paletternd', 'paletteindex']);
+    guiBrushFolder.add(p.brushInterface, 'fillMethod', ['fixedStroke','fixedFill', 'random', 'none', 'paletternd', 'paletteindex']);
     guiBrushFolder.addColor(p.brushInterface, 'strokeColor');
     guiBrushFolder.add(p.brushInterface, 'updateStrokeColor');
     guiBrushFolder.addColor(p.brushInterface, 'fillColor');
@@ -1416,9 +1469,9 @@ function setupGUI() {
     guiBrushFolder.add(p.brushInterface, 'updateStrokeWidth');
     guiBrushFolder.add(p.brushInterface, 'opacity', 0., 1., 0.01);
     guiBrushFolder.add(p.brushInterface, 'updateOpacity');
-    guiBrushFolder.add(p.brushInterface, 'blendMode', p.blendModes)
-        .onChange(_ => p.project.selectedItems.forEach(item=>item.blendMode=_))
-        .listen();
+    guiBrushFolder.add(p.brushInterface, 'blendMode', p.blendModes);
+    guiBrushFolder.add(p.brushInterface, 'updateBlendMode');
+    guiBrushFolder.add(p.brushInterface, 'palettize');
     //////////////////////////////////////////////
 
     const guiLayerFolder = gui.addFolder('Layers');
@@ -1536,6 +1589,7 @@ function setupGUI() {
 
     const guiProcess = gui.addFolder('Process')
     guiProcess.add(p.processInterface, 'boolOp', p.bools);
+    guiProcess.add(p.processInterface, 'boolOperate');
     guiProcess.add(p.processInterface, 'bool');
     guiProcess.add(p.processInterface, 'smooth');
     guiProcess.add(p.processInterface, 'smoothness', -10., 10., 0.01);
@@ -1705,6 +1759,13 @@ function setupGUI() {
                 raster.onLoad = _ => {
                     raster.fitBounds(p.view.bounds);
                     p.project.addLayer(raster);
+
+                }
+                if (p.Key.isDown('alt')) {
+                    for (let i = p.project.selectedItems.length - 1; i >= 0; i--) {
+                        p.project.selectedItems[i].remove();
+                    }
+                    selectionGroup.remove();
                 }
             }
     }, 'selection2Raster').name('selection to raster');
@@ -1764,7 +1825,7 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'delete');
     guiActionFolder.add(p.actionInterface, 'select');
     guiActionFolder.add(p.actionInterface, 'selectProbability', 0., 1., 0.01);
-    guiActionFolder.add(p.actionInterface, 'palettize');
+
     guiActionFolder.add(p.actionInterface, 'visibility');
     guiActionFolder.add(p.actionInterface, 'blendModeRnd');
 
