@@ -227,7 +227,10 @@ function setupInterfaces() {
                 }
             );
         },
+        // prune:function() {
 
+        // },
+        
 
 
     }
@@ -619,7 +622,7 @@ function setupInterfaces() {
         color4: '#f0f',
         prob4: 0.5,
         color5: '#888',
-        prob5: 0.5,
+        prob5: 0.0,
         palette: ['#000', '#fff', '#ff0', '#0ff', '#f0f', '#888'],
         lastIndex: 0,
         colors: [],
@@ -800,7 +803,7 @@ function setupTools() {
     p.tools.tolerance = 20;
     p.tools.autoClose = false;
     p.tools.autoSmooth = true;
-    p.tools.smoothness = 0.5;
+    p.tools.smoothness = 0.45;
     p.tools.smoothType = 'geometric';//'geometric', 'catmull-rom', 'continuous', 'asymmetric'
     p.tools.autoSimplify = true;
     p.tools.simplicity = 0.5;
@@ -826,7 +829,6 @@ function setupTools() {
         let mouseDownPoint = null;
         tool.selectionPath = null;
         tool.oldPointViewCoords = null;
-
 
         tool.onMouseDown = e => {
             selectedSegment = selectedPath = null;
@@ -1085,7 +1087,7 @@ function setupTools() {
                 path.strokeWidth = p.brushInterface.getStrokeWidth();
                 path.blendMode = p.brushInterface.blendMode;
                 path.opacity = p.brushInterface.getOpacity();
-
+                path.name = path.toString();
                 path.add(e.point);
             }
         }
@@ -1884,6 +1886,11 @@ function setupGUI() {
     guiActionFolder.add(p.actionInterface, 'selectProbability', 0., 1., 0.01);
 
     guiActionFolder.add(p.actionInterface, 'visibility');
+    // guiActionFolder.addFolder('Prune')
+    //     .add(p.actionInterface, 'prune')
+    //     .add(p.actionInterface, 'pruneProbability', 0., 1., 0.01);
+        
+
     guiActionFolder.add(p.actionInterface, 'blendModeRnd');
 
     ///////////////////////////////////////////
