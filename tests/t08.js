@@ -627,20 +627,38 @@ function setupInterfaces() {
         lastIndex: 0,
         colors: [],
         colorWeights: [],
+        grad:[],
         build: function () {
             this.colors = [this.color0, this.color1, this.color2, this.color3, this.color4, this.color5];
             this.colorWeights = [this.prob0, this.prob1, this.prob2, this.prob3, this.prob4, this.prob5];
             //normalize colorweights using reduce
-            var sum = this.colorWeights.reduce(function (a, b) { return a + b; });
+            let sum = this.colorWeights.reduce(function (a, b) { return a + b; });
             this.colorWeights = this.colorWeights.map(function (x) { return x / sum; });
             //this.colorWeights = this.colorWeights.map(x =>{return x/this.colorWeights.reduce((a,b)=>{return a+b;},0)},this);
             this.palette = [];
             for (var i = 0; i < this.colors.length; i++) {
-                for (var j = 0; j < this.colorWeights[i] * this.ncolors; j++) {
+                for (var j = 0; j < (this.colorWeights[i]-1/this.ncolors) * this.ncolors; j++) {
                     this.palette.push(this.colors[i]);
-                    if (this.palette.length >= this.ncolors) break;
+                 //   if (this.palette.length >= this.ncolors) break;
                 }
             }
+            this.grad = [];
+            for (let i = 0; i < this.colors.length-1; i++) {
+                let c0 = new p.Color(this.colors[i]);
+                let c1 = new p.Color(this.colors[i+1]);
+                for (let j=0; j<=(this.colorWeights[i]-1/this.ncolors)*(this.ncolors); j++) {
+                    //interpolate between c0 and c1 over j
+                    let w = j/(this.colorWeights[i]*(this.ncolors));
+                    let c = c0.multiply(1.-w).add(c1.multiply(w));
+                    this.grad.push(c);
+                    console.log(j+": " +this.ncolors+" "+c.toCSS());
+                    // if (this.grad.length >= this.ncolors) break;
+                }
+               
+            }
+            console.log(this.grad);
+
+
         },
         sorthue: function () { },
         sortlightness: function () { },
@@ -649,38 +667,55 @@ function setupInterfaces() {
             return this.palette[Math.floor(Math.random() * this.palette.length)];
         },
 
-        draw: function (pal, layer, clearfirst) {
+        draw: function (pal, grad, layer, clearfirst) {
             pal = pal || p.paletteInterface.palette;
+            grad = grad || p.paletteInterface.grad;
             layer = layer || p.comp.clipboard;
             clearfirst = clearfirst || true;
-            let ncolors = pal.length;
-            let w = view.size.width / ncolors;
+            //let ncolors = pal.length;
+            
             let h = view.size.height;
 
-
+            
+          
             if (clearfirst) layer.removeChildren();
-            for (var i = 0; i < ncolors; i++) {
-                var color = pal[i];
-                var rect = new Path.Rectangle({
-                    point: [i * w, 0],
-                    size: [w, h],
-                    fillColor: color,
+            let w = view.size.width / pal.length;
+            for (let i = 0; i < pal.length; i++) {
+                //var color = pal[i];
+ 
+                let rect2 = new p.Path.Rectangle({
+                    point: [i * w, h/2],
+                    size: [w, h/2],
+                    fillColor: pal[i],
                     //strokeColor:'white'
                 });
-                layer.addChild(rect);
+
+                layer.addChild(rect2);
+            }
+            w = view.size.width/grad.length;
+            for (let i = 0; i < grad.length; i++) {
+                let rect1 = new p.Path.Rectangle({
+                    point: [i * w, 0],
+                    size: [w, h/2],
+                    fillColor: grad[i],
+                    //strokeColor:'white'
+                });
+                layer.addChild(rect1);
+               // console.log(rect1);
 
             }
+
             layer.visible = true;
             let raster = layer.rasterize();
             raster.name = 'raster_palette';
-            layer.removeChildren();
+           layer.removeChildren();
 
             layer.addChild(raster);
-            raster.onLoad = _ => {
+            //raster.onLoad = _ => {
                 //raster.fitBounds(p.view.bounds);
 
                 // layer.addChild(raster);
-            }
+            //}
         },
         strokeChoice: '#000',
         setCoolors: function (url) {
@@ -800,7 +835,7 @@ function setupTools() {
     // edit tool
     p.tools.minDistance = 0;
     p.tools.maxDistance = 0;
-    p.tools.tolerance = 20;
+    p.tools.tolerance =5;
     p.tools.autoClose = false;
     p.tools.autoSmooth = true;
     p.tools.smoothness = 0.45;
@@ -1638,7 +1673,7 @@ function setupGUI() {
     guiPalette.add(p.paletteInterface, 'prob3', 0, 1).step(0.01);
     guiPalette.add(p.paletteInterface, 'prob4', 0, 1).step(0.01);
     guiPalette.add(p.paletteInterface, 'prob5', 0, 1).step(0.01);
-    guiPalette.add(p.paletteInterface, 'ncolors', 1, 256).step(1).listen();
+    guiPalette.add(p.paletteInterface, 'ncolors', 1, 256).step(1);
     guiPalette.add(p.paletteInterface, 'build').name('update');
     guiPalette.add(p.paletteInterface, 'draw').onChange(_ => p.paletteInterface.draw(layer = p.comp.clipboard));
     //  guiPalette.add(p.paletteInterface, 'strokeChoice', ['black', 'white', 'random', 'color0', 'color1', 'color2', 'color3', 'color4', 'color5']);
